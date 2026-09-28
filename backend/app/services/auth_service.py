@@ -8,6 +8,9 @@ from app.core.exceptions import (
     EmailNotVerifiedError,
     InvalidVerificationTokenError,
     InvalidCredentialsError,
+    RegistrationExpiredError,
+    VerificationCooldownError,
+    PendingRegistrationNotFoundError,
     UsernameAlreadyRegisteredError,
 )
 from app.core.security import (
@@ -26,9 +29,15 @@ from app.repositories.user_repository import (
     get_user_by_username,
     get_user_by_id,
     update_user,
+    delete_user,
 )
 from app.schemas.user import UserCreate
 from app.services.email_service import send_verification_email
+
+
+def _registration_expired(user: User) -> bool:
+    expires_at = user.registration_expires_at
+    return expires_at is not None and datetime.now(UTC) >= expires_at.replace(tzinfo=UTC)
 
 
 def register_user(
@@ -45,7 +54,10 @@ def register_user(
     )
 
     if existing_email_user is not None:
-        raise EmailAlreadyRegisteredError
+        if not existing_email_user.email_verified and _registration_expired(existing_email_user):
+            delete_user(db=db, user=existing_email_user)
+        else:
+            raise EmailAlreadyRegisteredError
 
     existing_username_user = get_user_by_username(
         db=db,
@@ -53,7 +65,10 @@ def register_user(
     )
 
     if existing_username_user is not None:
-        raise UsernameAlreadyRegisteredError
+        if not existing_username_user.email_verified and _registration_expired(existing_username_user):
+            delete_user(db=db, user=existing_username_user)
+        else:
+            raise UsernameAlreadyRegisteredError
 
     user = User(
         name=user_data.name,
@@ -65,6 +80,7 @@ def register_user(
         hashed_password=hash_password(
             user_data.password
         ),
+        registration_expires_at=datetime.now(UTC) + timedelta(hours=24),
     )
 
     created = create_user(
@@ -157,19 +173,45 @@ def verify_email(db: Session, token: str) -> None:
         raise InvalidVerificationTokenError from exc
     if user is None or user.email != payload["email"]:
         raise InvalidVerificationTokenError
+    if not user.email_verified and _registration_expired(user):
+        raise RegistrationExpiredError
     if not user.email_verified:
         user.email_verified = True
+        user.registration_expires_at = None
         update_user(db=db, user=user)
 
 
 def resend_verification(db: Session, email: str) -> None:
     user = get_user_by_email(db=db, email=email.strip().lower())
-    if user is None or user.email_verified:
-        return
+    if user is None:
+        raise PendingRegistrationNotFoundError
+    if user.email_verified:
+        raise EmailAlreadyRegisteredError
+    if _registration_expired(user):
+        raise RegistrationExpiredError
     now = datetime.now(UTC)
     last_sent = user.verification_sent_at
     if last_sent is not None and now - last_sent.replace(tzinfo=UTC) < timedelta(minutes=1):
-        return
+        raise VerificationCooldownError
     send_verification_email(user)
     user.verification_sent_at = now
+    update_user(db=db, user=user)
+
+
+def change_pending_email(db: Session, current_email: str, password: str, new_email: str) -> None:
+    user = get_user_by_email(db=db, email=current_email.strip().lower())
+    if user is None or user.email_verified or not verify_password(password, user.hashed_password):
+        raise InvalidCredentialsError
+    if _registration_expired(user):
+        raise RegistrationExpiredError
+    normalized_new_email = new_email.strip().lower()
+    if normalized_new_email == user.email:
+        raise EmailAlreadyRegisteredError
+    if get_user_by_email(db=db, email=normalized_new_email) is not None:
+        raise EmailAlreadyRegisteredError
+    user.email = normalized_new_email
+    user.verification_sent_at = None
+    update_user(db=db, user=user)
+    send_verification_email(user)
+    user.verification_sent_at = datetime.now(UTC)
     update_user(db=db, user=user)

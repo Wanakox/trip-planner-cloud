@@ -42,6 +42,18 @@ class EmailDeliveryError(TripPlannerError):
     default_message = "No se pudo enviar el correo de verificación."
 
 
+class VerificationCooldownError(TripPlannerError):
+    default_message = "Espera un minuto antes de solicitar otro enlace."
+
+
+class RegistrationExpiredError(TripPlannerError):
+    default_message = "El plazo de registro ha caducado. Vuelve a crear la cuenta."
+
+
+class PendingRegistrationNotFoundError(TripPlannerError):
+    default_message = "No hay ninguna cuenta pendiente con ese correo. Para cambiarlo, usa el formulario inferior."
+
+
 # ============================================================
 # MONEDAS Y SERVICIOS EXTERNOS
 # ============================================================

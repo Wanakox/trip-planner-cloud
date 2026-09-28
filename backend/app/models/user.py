@@ -65,6 +65,10 @@ class User(Base):
         "verificacion_enviada_en", DateTime(timezone=True), nullable=True,
     )
 
+    registration_expires_at: Mapped[datetime | None] = mapped_column(
+        "registro_caduca_en", DateTime(timezone=True), nullable=True,
+    )
+
     hashed_password: Mapped[str] = mapped_column(
         "contrasena_hash",
         String(255),

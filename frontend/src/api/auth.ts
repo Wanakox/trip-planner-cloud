@@ -32,3 +32,11 @@ export async function verifyEmail(token: string) {
 export async function resendVerification(email: string) {
   await httpClient.post('/auth/resend-verification', { email })
 }
+
+export async function changePendingEmail(currentEmail: string, password: string, newEmail: string) {
+  await httpClient.post('/auth/change-pending-email', {
+    current_email: currentEmail,
+    password,
+    new_email: newEmail,
+  })
+}

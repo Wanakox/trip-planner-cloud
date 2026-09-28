@@ -101,6 +101,12 @@ class ResendVerificationRequest(BaseModel):
     email: EmailStr
 
 
+class ChangePendingEmailRequest(BaseModel):
+    current_email: EmailStr
+    password: str = Field(min_length=8, max_length=128)
+    new_email: EmailStr
+
+
 class UserUpdate(UserBase):
     name: str | None = Field(
         default=None,

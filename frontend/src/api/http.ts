@@ -90,7 +90,10 @@ httpClient.interceptors.response.use(
     const isAuthenticationRequest =
       originalRequest?.url?.includes('/auth/login') ||
       originalRequest?.url?.includes('/auth/register') ||
-      originalRequest?.url?.includes('/auth/refresh')
+      originalRequest?.url?.includes('/auth/refresh') ||
+      originalRequest?.url?.includes('/auth/verify-email') ||
+      originalRequest?.url?.includes('/auth/resend-verification') ||
+      originalRequest?.url?.includes('/auth/change-pending-email')
 
     if (
       !isUnauthorized ||

@@ -27,6 +27,7 @@ CREATE TABLE usuario (
     correo_electronico VARCHAR(255) NOT NULL UNIQUE,
     correo_verificado BOOLEAN NOT NULL DEFAULT FALSE,
     verificacion_enviada_en TIMESTAMPTZ,
+    registro_caduca_en TIMESTAMPTZ,
     moneda_predeterminada CHAR(3) NOT NULL DEFAULT 'EUR',
     contrasena_hash VARCHAR(255) NOT NULL,
 
