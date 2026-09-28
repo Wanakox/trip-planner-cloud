@@ -30,6 +30,18 @@ class InvalidCredentialsError(TripPlannerError):
     default_message = "El identificador o la contraseña son incorrectos."
 
 
+class EmailNotVerifiedError(TripPlannerError):
+    default_message = "Debes verificar tu correo electrónico antes de iniciar sesión."
+
+
+class InvalidVerificationTokenError(TripPlannerError):
+    default_message = "El enlace de verificación es inválido o ha caducado."
+
+
+class EmailDeliveryError(TripPlannerError):
+    default_message = "No se pudo enviar el correo de verificación."
+
+
 # ============================================================
 # MONEDAS Y SERVICIOS EXTERNOS
 # ============================================================

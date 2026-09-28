@@ -10,6 +10,7 @@ import { ProfilePage } from '../pages/ProfilePage'
 import { RegisterPage } from '../pages/RegisterPage'
 import { TripDetailsPage } from '../pages/TripDetailsPage'
 import { TripsPage } from '../pages/TripsPage'
+import { VerifyEmailPage } from '../pages/VerifyEmailPage'
 import { ProtectedRoute } from './ProtectedRoute'
 
 export function AppRouter() {
@@ -29,6 +30,8 @@ export function AppRouter() {
         element={<LoginPage />}
         path="/iniciar-sesion"
       />
+
+      <Route element={<VerifyEmailPage />} path="/verificar-correo" />
 
       <Route element={<ProtectedRoute />}>
         <Route element={<DashboardLayout />}>

@@ -10,6 +10,7 @@ import {
 } from '@mui/material'
 import { useMutation } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
+import { isAxiosError } from 'axios'
 
 import { loginUser } from '../api/auth'
 import { AuthCard } from '../components/AuthCard'
@@ -51,6 +52,7 @@ export function LoginPage() {
       })
     },
   })
+  const needsVerification = isAxiosError(mutation.error) && mutation.error.response?.status === 403
 
   return (
     <Box
@@ -104,8 +106,14 @@ export function LoginPage() {
             >
               {mutation.isError && (
                 <Alert severity="error">
-                  El correo, usuario o contraseña no son
-                  correctos.
+                  {needsVerification
+                    ? 'Verifica tu correo electrónico antes de iniciar sesión.'
+                    : 'El correo, usuario o contraseña no son correctos.'}
+                  {needsVerification && (
+                    <Button onClick={() => navigate('/verificar-correo', { state: { email: identifier.includes('@') ? identifier : '' } })}>
+                      Solicitar otro enlace
+                    </Button>
+                  )}
                 </Alert>
               )}
 

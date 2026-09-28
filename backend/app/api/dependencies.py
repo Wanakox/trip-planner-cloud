@@ -46,7 +46,7 @@ def get_current_user(
         user_id=user_id,
     )
 
-    if user is None:
+    if user is None or not user.email_verified:
         raise unauthorized_exception
 
     return user

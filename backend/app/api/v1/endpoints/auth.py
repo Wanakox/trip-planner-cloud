@@ -11,21 +11,28 @@ from sqlalchemy.orm import Session
 
 from app.core.exceptions import (
     EmailAlreadyRegisteredError,
+    EmailDeliveryError,
+    EmailNotVerifiedError,
+    InvalidVerificationTokenError,
     InvalidCredentialsError,
     UsernameAlreadyRegisteredError,
 )
 from app.db.dependencies import get_db
 from app.schemas.user import (
     LoginRequest,
+    ResendVerificationRequest,
     RefreshTokenRequest,
     TokenResponse,
     UserCreate,
     UserResponse,
+    VerifyEmailRequest,
 )
 from app.services.auth_service import (
     login_user,
     refresh_access_token,
     register_user,
+    resend_verification,
+    verify_email,
 )
 
 
@@ -68,6 +75,8 @@ def register(
             status_code=status.HTTP_409_CONFLICT,
             detail="Nombre de usuario ya registrado",
         ) from exc
+    except EmailDeliveryError as exc:
+        raise HTTPException(status_code=503, detail="Cuenta creada, pero no se pudo enviar el correo. Solicita otro enlace de verificación.") from exc
 
 
 @router.post(
@@ -95,6 +104,8 @@ def login(
                 "WWW-Authenticate": "Bearer",
             },
         ) from exc
+    except EmailNotVerifiedError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
 
     return TokenResponse(
         access_token=access_token,
@@ -110,9 +121,11 @@ def login(
 )
 def refresh_token(
     token_data: RefreshTokenRequest,
+    db: DatabaseSession,
 ) -> TokenResponse:
     try:
         access_token = refresh_access_token(
+            db=db,
             refresh_token=token_data.refresh_token,
         )
 
@@ -126,3 +139,20 @@ def refresh_token(
         access_token=access_token,
         refresh_token=token_data.refresh_token,
     )
+
+
+@router.post("/verify-email", status_code=204, summary="Verify an email address")
+def verify_email_endpoint(data: VerifyEmailRequest, db: DatabaseSession) -> None:
+    try:
+        verify_email(db, data.token)
+    except InvalidVerificationTokenError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/resend-verification", status_code=202, summary="Resend verification email")
+def resend_verification_endpoint(data: ResendVerificationRequest, db: DatabaseSession) -> dict[str, str]:
+    try:
+        resend_verification(db, str(data.email))
+    except EmailDeliveryError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    return {"message": "Si la cuenta existe y está pendiente, enviaremos un enlace de verificación."}

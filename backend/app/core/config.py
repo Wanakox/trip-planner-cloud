@@ -35,6 +35,13 @@ class Settings(BaseSettings):
 
     supabase_url: str
     supabase_secret_key: str
+    smtp_host: str = "smtp-relay.brevo.com"
+    smtp_port: int = 2525
+    smtp_username: str
+    smtp_password: str
+    smtp_from_email: str
+    frontend_url: str
+    email_verification_expire_hours: int = 24
 
 
 @lru_cache

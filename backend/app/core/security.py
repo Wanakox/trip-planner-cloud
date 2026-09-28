@@ -122,3 +122,21 @@ def decode_refresh_token(
         raise jwt.InvalidTokenError
 
     return payload
+
+
+def create_email_verification_token(subject: str, email: str) -> str:
+    return jwt.encode(
+        {"sub": subject, "email": email, "type": "email_verification",
+         "exp": datetime.now(UTC) + timedelta(hours=settings.email_verification_expire_hours)},
+        settings.jwt_secret_key, algorithm=settings.jwt_algorithm,
+    )
+
+
+def decode_email_verification_token(token: str) -> dict[str, Any]:
+    payload = jwt.decode(
+        token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm],
+        options={"require": ["sub", "email", "type", "exp"]},
+    )
+    if payload["type"] != "email_verification":
+        raise jwt.InvalidTokenError
+    return payload

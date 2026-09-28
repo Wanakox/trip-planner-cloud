@@ -1,8 +1,12 @@
 from typing import TYPE_CHECKING
+from datetime import datetime
 
 from sqlalchemy import (
     BigInteger,
+    Boolean,
+    DateTime,
     String,
+    text,
 )
 from sqlalchemy.orm import (
     Mapped,
@@ -51,6 +55,14 @@ class User(Base):
         nullable=False,
         unique=True,
         index=True,
+    )
+
+    email_verified: Mapped[bool] = mapped_column(
+        "correo_verificado", Boolean, nullable=False, default=False, server_default=text("false"),
+    )
+
+    verification_sent_at: Mapped[datetime | None] = mapped_column(
+        "verificacion_enviada_en", DateTime(timezone=True), nullable=True,
     )
 
     hashed_password: Mapped[str] = mapped_column(

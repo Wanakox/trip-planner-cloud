@@ -15,6 +15,7 @@ from app.api.dependencies import get_current_user
 from app.core.exceptions import (
     CurrencyProviderError,
     EmailAlreadyRegisteredError,
+    EmailDeliveryError,
     UnsupportedCurrencyError,
     UsernameAlreadyRegisteredError,
 )
@@ -122,6 +123,9 @@ def update_me(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Currency service is temporarily unavailable",
         ) from exc
+
+    except EmailDeliveryError as exc:
+        raise HTTPException(status_code=503, detail="Correo actualizado, pero no se pudo enviar el enlace. Solicita uno nuevo.") from exc
 
 
 @router.post(

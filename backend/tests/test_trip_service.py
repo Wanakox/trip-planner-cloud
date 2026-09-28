@@ -56,7 +56,7 @@ def test_completed_trip_rating_is_persisted(monkeypatch) -> None:
 
 
 def test_delete_checks_ownership_before_repository_delete(monkeypatch) -> None:
-    trip = SimpleNamespace(id=1, user_id=7)
+    trip = SimpleNamespace(id=1, user_id=7, files=[])
     deleted = []
     monkeypatch.setattr(trip_service, "get_user_trip_by_id", lambda **_: trip)
     monkeypatch.setattr(

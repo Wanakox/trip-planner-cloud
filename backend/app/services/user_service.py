@@ -1,4 +1,5 @@
 from decimal import ROUND_HALF_UP, Decimal
+from datetime import UTC, datetime
 
 from fastapi import UploadFile
 from sqlalchemy.orm import Session
@@ -22,9 +23,11 @@ from app.services.currency_service import (
 )
 from app.core.storage import (
     delete_profile_image,
+    delete_stored_file,
     download_profile_image,
     save_profile_image,
 )
+from app.services.email_service import send_verification_email
 
 
 def update_current_user(
@@ -101,6 +104,7 @@ def update_current_user(
                 ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
             trip.currency = target_currency
 
+    email_changed = "email" in update_data and update_data["email"] != user.email
     for field, value in update_data.items():
         setattr(
             user,
@@ -108,10 +112,18 @@ def update_current_user(
             value,
         )
 
-    return update_user(
+    if email_changed:
+        user.email_verified = False
+        user.verification_sent_at = None
+    updated = update_user(
         db=db,
         user=user,
     )
+    if email_changed:
+        send_verification_email(updated)
+        updated.verification_sent_at = datetime.now(UTC)
+        update_user(db=db, user=updated)
+    return updated
 
 
 async def upload_current_user_photo(
@@ -168,12 +180,12 @@ def delete_current_user(
     user: User,
 ) -> None:
     photo_path = user.profile_photo
+    for trip in user.trips:
+        for trip_file in trip.files:
+            delete_stored_file(trip_file.path)
+    if photo_path:
+        delete_profile_image(photo_path)
     delete_user(
         db=db,
         user=user,
     )
-    if photo_path:
-        try:
-            delete_profile_image(photo_path)
-        except Exception:
-            pass

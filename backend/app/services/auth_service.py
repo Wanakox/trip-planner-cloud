@@ -1,13 +1,19 @@
+from datetime import UTC, datetime, timedelta
+
+import jwt
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import (
     EmailAlreadyRegisteredError,
+    EmailNotVerifiedError,
+    InvalidVerificationTokenError,
     InvalidCredentialsError,
     UsernameAlreadyRegisteredError,
 )
 from app.core.security import (
     create_access_token,
     create_refresh_token,
+    decode_email_verification_token,
     decode_refresh_token,
     hash_password,
     verify_password,
@@ -18,8 +24,11 @@ from app.repositories.user_repository import (
     get_user_by_email,
     get_user_by_identifier,
     get_user_by_username,
+    get_user_by_id,
+    update_user,
 )
 from app.schemas.user import UserCreate
+from app.services.email_service import send_verification_email
 
 
 def register_user(
@@ -58,10 +67,13 @@ def register_user(
         ),
     )
 
-    return create_user(
+    created = create_user(
         db=db,
         user=user,
     )
+    send_verification_email(created)
+    created.verification_sent_at = datetime.now(UTC)
+    return update_user(db=db, user=created)
 
 
 def authenticate_user(
@@ -99,6 +111,9 @@ def login_user(
         password=password,
     )
 
+    if not user.email_verified:
+        raise EmailNotVerifiedError
+
     subject = str(user.id)
 
     access_token = create_access_token(
@@ -113,6 +128,7 @@ def login_user(
 
 
 def refresh_access_token(
+    db: Session,
     refresh_token: str,
 ) -> str:
     payload = decode_refresh_token(
@@ -121,6 +137,39 @@ def refresh_access_token(
 
     subject = payload["sub"]
 
+    try:
+        user = get_user_by_id(db=db, user_id=int(subject))
+    except (ValueError, TypeError) as exc:
+        raise jwt.InvalidTokenError from exc
+    if user is None or not user.email_verified:
+        raise jwt.InvalidTokenError
+
     return create_access_token(
         subject=subject,
     )
+
+
+def verify_email(db: Session, token: str) -> None:
+    try:
+        payload = decode_email_verification_token(token)
+        user = get_user_by_id(db=db, user_id=int(payload["sub"]))
+    except (jwt.InvalidTokenError, ValueError, TypeError) as exc:
+        raise InvalidVerificationTokenError from exc
+    if user is None or user.email != payload["email"]:
+        raise InvalidVerificationTokenError
+    if not user.email_verified:
+        user.email_verified = True
+        update_user(db=db, user=user)
+
+
+def resend_verification(db: Session, email: str) -> None:
+    user = get_user_by_email(db=db, email=email.strip().lower())
+    if user is None or user.email_verified:
+        return
+    now = datetime.now(UTC)
+    last_sent = user.verification_sent_at
+    if last_sent is not None and now - last_sent.replace(tzinfo=UTC) < timedelta(minutes=1):
+        return
+    send_verification_email(user)
+    user.verification_sent_at = now
+    update_user(db=db, user=user)

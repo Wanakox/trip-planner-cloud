@@ -93,6 +93,14 @@ class RefreshTokenRequest(BaseModel):
     refresh_token: str
 
 
+class VerifyEmailRequest(BaseModel):
+    token: str = Field(min_length=1)
+
+
+class ResendVerificationRequest(BaseModel):
+    email: EmailStr
+
+
 class UserUpdate(UserBase):
     name: str | None = Field(
         default=None,

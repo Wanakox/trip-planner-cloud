@@ -24,3 +24,11 @@ export async function loginUser(identifier: string, password: string) {
   const { data } = await httpClient.post<TokenResponse>('/auth/login', { identifier, password })
   return data
 }
+
+export async function verifyEmail(token: string) {
+  await httpClient.post('/auth/verify-email', { token })
+}
+
+export async function resendVerification(email: string) {
+  await httpClient.post('/auth/resend-verification', { email })
+}

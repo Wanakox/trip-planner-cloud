@@ -5,6 +5,7 @@ import pytest
 
 from app.core.exceptions import (
     EmailAlreadyRegisteredError,
+    EmailNotVerifiedError,
     InvalidCredentialsError,
     UsernameAlreadyRegisteredError,
 )
@@ -25,7 +26,7 @@ def test_authenticate_rejects_unknown_user_and_bad_password(monkeypatch):
 
 
 def test_authenticate_and_login_return_user_tokens(monkeypatch):
-    user = SimpleNamespace(id=7, hashed_password="hash")
+    user = SimpleNamespace(id=7, hashed_password="hash", email_verified=True)
     monkeypatch.setattr(auth_service, "get_user_by_identifier", lambda **kwargs: user)
     monkeypatch.setattr(auth_service, "verify_password", lambda **kwargs: True)
     assert auth_service.authenticate_user(object(), "ana", "correcta") is user
@@ -37,7 +38,14 @@ def test_authenticate_and_login_return_user_tokens(monkeypatch):
 def test_refresh_uses_subject_from_refresh_token(monkeypatch):
     monkeypatch.setattr(auth_service, "decode_refresh_token", lambda token: {"sub": "9"})
     monkeypatch.setattr(auth_service, "create_access_token", lambda subject: f"new-{subject}")
-    assert auth_service.refresh_access_token("refresh") == "new-9"
+    monkeypatch.setattr(auth_service, "get_user_by_id", lambda **kwargs: SimpleNamespace(email_verified=True))
+    assert auth_service.refresh_access_token(object(), "refresh") == "new-9"
+
+
+def test_login_requires_email_verification(monkeypatch):
+    monkeypatch.setattr(auth_service, "authenticate_user", lambda **kwargs: SimpleNamespace(email_verified=False))
+    with pytest.raises(EmailNotVerifiedError):
+        auth_service.login_user(object(), "ana", "correcta")
 
 
 def test_profile_rejects_email_and_username_owned_by_another_user(monkeypatch):
