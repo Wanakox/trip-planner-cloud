@@ -132,7 +132,7 @@ async def upload_current_user_photo(
     if previous_photo:
         try:
             delete_profile_image(previous_photo)
-        except (OSError, ValueError):
+        except Exception:
             pass
     return updated_user
 
@@ -159,7 +159,7 @@ def remove_current_user_photo(db: Session, user: User) -> None:
     if photo_path:
         try:
             delete_profile_image(photo_path)
-        except (OSError, ValueError):
+        except Exception:
             pass
 
 
@@ -175,5 +175,5 @@ def delete_current_user(
     if photo_path:
         try:
             delete_profile_image(photo_path)
-        except (OSError, ValueError):
+        except Exception:
             pass

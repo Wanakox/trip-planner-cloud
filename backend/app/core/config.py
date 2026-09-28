@@ -29,14 +29,10 @@ class Settings(BaseSettings):
     frankfurter_base_url: str = "https://api.frankfurter.dev/v1"
     external_api_timeout_seconds: float = 5.0
 
-    trip_files_storage_path: str = "storage/trips"
-    profile_images_storage_path: str = "storage/profile"
-
     duffel_access_token: str = ""
     duffel_base_url: str = "https://api.duffel.com"
     duffel_api_version: str = "v2"
 
-    database_url: str
     supabase_url: str
     supabase_secret_key: str
 

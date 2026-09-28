@@ -123,9 +123,9 @@ def add_trip_files_to_zip(
         )
 
         zip_file.writestr(
-    f"archivos/{archive_name}",
-    content,
-)
+            f"archivos/{archive_name}",
+            content,
+        )
 
 
 def build_trip_export(
