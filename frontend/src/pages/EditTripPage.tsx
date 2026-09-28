@@ -16,7 +16,7 @@ import { useState } from 'react'
 import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom'
 
 import { getTrip, updateTrip } from '../api/trips'
-import { getCurrencies } from '../api/currency'
+import { convertCurrency, getCurrencies } from '../api/currency'
 import { DestinationsManager } from '../components/trips/DestinationsManager'
 import type { TripStatus, TripUpdatePayload } from '../types/trip'
 
@@ -61,6 +61,7 @@ export function EditTripPage() {
   const queryClient = useQueryClient()
   const [form, setForm] = useState<EditTripForm | null>(null)
   const [validationError, setValidationError] = useState<string | null>(null)
+  const [conversionPending, setConversionPending] = useState(false)
 
   const tripQuery = useQuery({
     queryKey: ['trip', numericTripId],
@@ -109,8 +110,29 @@ export function EditTripPage() {
       [field]: value,
     }))
 
+  const changeCurrency = async (newCurrency: string) => {
+    if (newCurrency === displayedForm.currency || conversionPending) return
+    setValidationError(null)
+    const currentForm = displayedForm
+    const amount = Number(currentForm.budget)
+    if (!Number.isFinite(amount) || amount < 0) {
+      setValidationError('Introduce un presupuesto válido antes de cambiar la moneda.')
+      return
+    }
+    setConversionPending(true)
+    try {
+      const conversion = await convertCurrency(amount, currentForm.currency, newCurrency)
+      setForm({ ...currentForm, budget: conversion.result, currency: newCurrency })
+    } catch {
+      setValidationError('No se ha podido convertir el presupuesto. Inténtalo de nuevo.')
+    } finally {
+      setConversionPending(false)
+    }
+  }
+
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    if (conversionPending) return
     setValidationError(null)
 
     if (displayedForm.endDate < displayedForm.startDate) {
@@ -259,6 +281,7 @@ export function EditTripPage() {
                 type="number"
                 value={displayedForm.budget}
                 onChange={(event) => updateField('budget', event.target.value)}
+                disabled={conversionPending}
                 required
                 slotProps={{ htmlInput: { min: 0, step: 0.01 } }}
               />
@@ -266,13 +289,11 @@ export function EditTripPage() {
                 select
                 label="Moneda"
                 value={displayedForm.currency}
-                onChange={(event) =>
-                  updateField('currency', event.target.value)
-                }
+                onChange={(event) => void changeCurrency(event.target.value)}
                 required
                 disabled={
                   currenciesQuery.isPending ||
-                  currenciesQuery.isError
+                  currenciesQuery.isError || conversionPending
                 }
                 error={currenciesQuery.isError}
                 helperText={
@@ -280,7 +301,9 @@ export function EditTripPage() {
                     ? 'Cargando monedas...'
                     : currenciesQuery.isError
                       ? 'No se pudieron cargar las monedas.'
-                      : undefined
+                      : conversionPending
+                        ? 'Convirtiendo presupuesto...'
+                        : undefined
                 }
               >
                 {(currenciesQuery.data ?? []).map((currency) => (
@@ -331,6 +354,7 @@ export function EditTripPage() {
                 variant="contained"
                 disabled={
                   mutation.isPending ||
+                  conversionPending ||
                   currenciesQuery.isPending ||
                   currenciesQuery.isError
                 }
