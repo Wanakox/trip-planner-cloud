@@ -199,7 +199,18 @@ export function ProfilePage() {
   const user = profileQuery.data
 
   return (
-    <Box sx={{ maxWidth: 920, mx: 'auto' }}>
+    <Box
+      component="main"
+      sx={{
+        width: '100%',
+        maxWidth: 920,
+        mx: 'auto',
+        boxSizing: 'border-box',
+        px: { xs: 2, sm: 3, md: 5 },
+        pt: { xs: 10, md: 5 },
+        pb: { xs: 3, md: 5 },
+      }}
+    >
       <Stack direction={{ xs: 'column', sm: 'row' }} sx={{ mb: 3, gap: 2, alignItems: { sm: 'center' }, justifyContent: 'space-between' }}>
         <Box>
           <Typography component="h1" sx={{ fontSize: { xs: 27, md: 32 }, fontWeight: 900 }}>Mi perfil</Typography>
