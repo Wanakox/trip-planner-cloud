@@ -1,0 +1,141 @@
+EXTRACCIÓN DE REQUISITOS (BRAINSTORM)
+
+USUARIO
+-------
++ (F) Registrar usuario (nombre, apellido, correo, nombre de usuario, contraseña, moneda predeterminada)
++ (F) Iniciar sesión con correo y contraseña
++ (F) Cerrar sesión
++ (F) Visualizar perfil de usuario (foto, nombre, apellido, nombre de usuario, moneda predeterminada y viajes creados)
++ (F) Editar perfil (foto, nombre, apellido, nombre de usuario, contraseña y moneda predeterminada)
++ (F) Eliminar cuenta
++ (F) Guardar sesión mediante tokens
+
+VIAJES
+------
++ (F) Crear viaje (nombre, país/es, ciudad/es, fechas, descripción, presupuesto, transporte, alojamiento, actividades, participantes, etc.)
+
+TRANSPORTE
++ (F) Añadir transporte (tipo, precio, fechas, compañía, origen, destino)
++ (F) Eliminar transporte
++ (F) Editar transporte
+
+ALOJAMIENTO
++ (F) Añadir alojamiento (nombre, dirección, precio, fechas, check-in, check-out)
++ (F) Eliminar alojamiento
++ (F) Editar alojamiento
+
+GESTIÓN DEL VIAJE
++ (F) Editar viaje (nombre, país/es, ciudad/es, fechas, descripción, presupuesto, transporte, alojamiento, moneda, actividades, participantes, etc.)
++ (F) Eliminar viaje
++ (F) Visualizar viajes (lista simple de todos los viajes creados)
++ (F) Visualizar detalles de un viaje (datos completos del viaje)
++ (F) Calcular duración del viaje automáticamente
++ (F) Mostrar contador de días restantes para el viaje
++ (F) Buscar viajes por nombre
++ (F) Filtrar viajes en el buscador (país/es, presupuesto, moneda, estado, etc.)
++ (F) Marcar viaje como completado y añadir una valoración
++ (F) Marcar viaje como cancelado
++ (F) Guardar en Google Calendar las fechas de check-in y check-out del alojamiento
++ (F) Guardar en Google Calendar las fechas y horas de salida y llegada de los vuelos
++ (F) Generar una búsqueda de vuelos a partir de origen, destino y fechas
++ (F) Redirigir al usuario a Kiwi o Skyscanner con los datos del viaje para consultar precios
+
+ACTIVIDADES
+-----------
++ (F) Crear planificación diaria del viaje
++ (F) Añadir actividades a un día concreto (nombre, ubicación y hora)
++ (F) Eliminar actividades
++ (F) Editar actividades (nombre, ubicación y hora)
++ (F) Ordenar actividades dentro de un día
++ (F) Marcar actividad como completada
+
+GASTOS EN VIAJE
+---------------
+PARTICIPANTES
++ (F) Añadir participante (nombre)
++ (F) Eliminar participante
++ (F) Editar participante
++ (F) Ver participantes del viaje
+
+GASTOS
++ (F) Añadir gastos (nombre, comprador, cantidad, categoría, moneda)
++ (F) Eliminar gasto
++ (F) Editar gasto (nombre, comprador, cantidad, categoría, moneda)
++ (F) Diferenciar categorías entre ocio, restauración, transporte
++ (F) Calcular gasto real por participante
++ (F) Mostrar la diferencia entre el presupuesto y el gasto real
++ (F) Tener un conversor de moneda
+
+CHECKLIST DE VIAJES
+-------------------
++ (F) Crear una checklist para el viaje
++ (F) Añadir tareas para la checklist
++ (F) Eliminar tareas
++ (F) Editar tareas
++ (F) Definir prioridades para la tarea
++ (F) Reordenar tareas
++ (F) Marcar las tareas como hechas
++ (F) Desmarcar tareas como hechas
+
+VIAJES TERMINADOS
+-----------------
+ARCHIVOS
++ (F) Añadir archivos al viaje con un máximo de 10
++ (F) Eliminar archivo
+
+DIARIO
++ (F) Crear un diario de viaje
++ (F) Añadir notas
++ (F) Eliminar notas
++ (F) Editar notas
+
+VISUALIZACIÓN DEL VIAJE
++ (F) Crear una línea temporal de actividades
++ (F) Crear una ruta en mapa (alojamiento, lugar de actividad)
+
+EXPORTACIÓN
++ (F) Exportar información del viaje (nombre, país/es, ciudad/es, fechas, presupuesto, transporte, alojamiento, moneda, actividades, participantes, ruta en mapa, archivos, línea temporal, notas, etc.)
+
+SEGURIDAD
+---------
++ (NF) Cifrado de contraseñas en base de datos
++ (NF) Prevención de accesos no autorizados al sistema
++ (NF) Control de permisos para acceso a viajes y datos del usuario
++ (NF) Protección frente a ataques comunes (inyección SQL, XSS)
+
+REQUISITOS NO FUNCIONALES
+-------------------------
+DISPONIBILIDAD
++ (NF) El sistema debe estar disponible 24/7
+
+RENDIMIENTO
++ (NF) El sistema debe responder a las peticiones en menos de 2 segundos
++ (NF) El sistema debe soportar 1000 usuarios simultáneos
+
+USABILIDAD
++ (NF) La aplicación debe ser responsive
++ (NF) La interfaz debe ser intuitiva y fácil de usar
+
+COMPATIBILIDAD
++ (NF) Compatible con navegadores modernos (Chrome, Firefox, Edge, Opera)
++ (NF) Compatible con diferentes resoluciones de pantalla
+
+MANTENIBILIDAD
++ (NF) El sistema debe seguir una arquitectura en capas
+` (NF) El código debe seguir principios de Clean Code y SOLID
+
+PORTABILIDAD
++ (NF) El sistema debe poder desplegarse mediante contenedores Docker
++ (NF) El sistema debe poder ejecutarse en un servidor Linux
+
+SEGURIDAD
++ (NF) Las comunicaciones con el servidor deben realizarse mediante HTTPS
+
+IDIOMA
++ (NF) El sistema dese estar en español
+
+POSIBLES FUNCIONALIDADES FUTURAS
+--------------------------------
+- (F) Recuperar contraseña
+- (F) Cambiar idioma de la aplicación
+- (F) Cambiar tema visual de la aplicación (modo claro / oscuro)
