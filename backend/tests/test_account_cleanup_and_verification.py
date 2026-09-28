@@ -20,6 +20,19 @@ def test_delete_account_removes_trip_files_and_profile_before_database(monkeypat
     assert events == ["trips/4/file.pdf", "profiles/1/photo.png", "database"]
 
 
+def test_delete_account_with_legacy_profile_reference(monkeypatch):
+    events = []
+    user = SimpleNamespace(
+        profile_photo="https://example.com/photo.jpg",
+        trips=[SimpleNamespace(files=[SimpleNamespace(path="/old/uploads/file.pdf")])],
+    )
+    monkeypatch.setattr(user_service, "delete_profile_image", lambda path: pytest.fail("invalid storage key"))
+    monkeypatch.setattr(user_service, "delete_stored_file", lambda path: pytest.fail("invalid storage key"))
+    monkeypatch.setattr(user_service, "delete_user", lambda **kwargs: events.append("database"))
+    user_service.delete_current_user(object(), user)
+    assert events == ["database"]
+
+
 def test_delete_trip_keeps_record_if_storage_fails(monkeypatch):
     trip = SimpleNamespace(files=[SimpleNamespace(path="trips/1/file.pdf")])
     monkeypatch.setattr(trip_service, "get_user_trip_by_id", lambda **kwargs: trip)

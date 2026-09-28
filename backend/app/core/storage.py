@@ -46,6 +46,15 @@ def _check_key(key: str, prefix: str) -> None:
         raise ValueError("Invalid storage key")
 
 
+def is_storage_key(key: str, prefix: str) -> bool:
+    """Identify bucket objects; older database rows may contain local paths or URLs."""
+    try:
+        _check_key(key, prefix)
+    except (TypeError, ValueError):
+        return False
+    return True
+
+
 async def _read_upload(upload_file: UploadFile, limit: int) -> bytes:
     data = bytearray()
     try:

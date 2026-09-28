@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from app.core.storage import delete_stored_file
+from app.core.storage import delete_stored_file, is_storage_key
 
 from app.core.exceptions import (
     InvalidTripDatesError,
@@ -209,7 +209,8 @@ def delete_user_trip(
     )
 
     for trip_file in trip.files:
-        delete_stored_file(trip_file.path)
+        if is_storage_key(trip_file.path, "trips/"):
+            delete_stored_file(trip_file.path)
 
     delete_trip_repository(
         db=db,

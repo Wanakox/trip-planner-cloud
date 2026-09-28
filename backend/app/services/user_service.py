@@ -25,6 +25,7 @@ from app.core.storage import (
     delete_profile_image,
     delete_stored_file,
     download_profile_image,
+    is_storage_key,
     save_profile_image,
 )
 from app.services.email_service import send_verification_email
@@ -182,8 +183,9 @@ def delete_current_user(
     photo_path = user.profile_photo
     for trip in user.trips:
         for trip_file in trip.files:
-            delete_stored_file(trip_file.path)
-    if photo_path:
+            if is_storage_key(trip_file.path, "trips/"):
+                delete_stored_file(trip_file.path)
+    if photo_path and is_storage_key(photo_path, "profiles/"):
         delete_profile_image(photo_path)
     delete_user(
         db=db,
