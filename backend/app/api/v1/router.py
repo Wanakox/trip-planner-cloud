@@ -16,7 +16,6 @@ from app.api.v1.endpoints.note import router as notes_router
 from app.api.v1.endpoints.file import router as files_router
 from app.api.v1.endpoints.timeline import router as timeline_router
 from app.api.v1.endpoints.export import router as export_router
-from app.api.v1.endpoints.flight import router as flight_router
 
 api_router = APIRouter()
 
@@ -38,5 +37,3 @@ api_router.include_router(export_router)
 api_router.include_router(timeline_router)
 
 api_router.include_router(currency_router)
-
-api_router.include_router(flight_router)

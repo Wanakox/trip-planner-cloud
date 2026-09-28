@@ -1,4 +1,3 @@
-import FlightTakeoffOutlinedIcon from '@mui/icons-material/FlightTakeoffOutlined'
 import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined'
 import MenuIcon from '@mui/icons-material/Menu'
 import {
@@ -33,11 +32,6 @@ const navigationItems: NavigationItem[] = [
     label: 'Mis viajes',
     path: '/viajes',
     icon: HomeOutlinedIcon,
-  },
-  {
-    label: 'Buscar vuelos',
-    path: '/buscar-vuelos',
-    icon: FlightTakeoffOutlinedIcon,
   },
 ]
 

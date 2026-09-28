@@ -1,9 +1,8 @@
-import { Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes } from 'react-router-dom'
 
 import { DashboardLayout } from '../components/layout/DashboardLayout'
 import { CreateTripPage } from '../pages/CreateTripPage'
 import { EditTripPage } from '../pages/EditTripPage'
-import { FlightSearchPage } from '../pages/FlightSearchPage'
 import { HomePage } from '../pages/HomePage'
 import { LoginPage } from '../pages/LoginPage'
 import { ProfilePage } from '../pages/ProfilePage'
@@ -56,7 +55,7 @@ export function AppRouter() {
           />
 
           <Route
-            element={<FlightSearchPage />}
+            element={<Navigate to="/viajes" replace />}
             path="/buscar-vuelos"
           />
 
