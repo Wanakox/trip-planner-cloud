@@ -1,3 +1,4 @@
+from app.core.storage import download_stored_file
 import re
 import shutil
 import tempfile
@@ -114,22 +115,17 @@ def add_trip_files_to_zip(
     used_names: set[str] = set()
 
     for trip_file in trip.files:
-        source_path = Path(
-            trip_file.path
-        )
-
-        if not source_path.is_file():
-            continue
+        content = download_stored_file(trip_file.path)
 
         archive_name = get_unique_archive_name(
             original_name=trip_file.name,
             used_names=used_names,
         )
 
-        zip_file.write(
-            filename=source_path,
-            arcname=f"archivos/{archive_name}",
-        )
+        zip_file.writestr(
+    f"archivos/{archive_name}",
+    content,
+)
 
 
 def build_trip_export(

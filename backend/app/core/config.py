@@ -36,6 +36,10 @@ class Settings(BaseSettings):
     duffel_base_url: str = "https://api.duffel.com"
     duffel_api_version: str = "v2"
 
+    database_url: str
+    supabase_url: str
+    supabase_secret_key: str
+
 
 @lru_cache
 def get_settings() -> Settings:

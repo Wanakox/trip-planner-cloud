@@ -9,7 +9,6 @@ from fastapi import (
     status,
     UploadFile,
 )
-from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_current_user
@@ -27,7 +26,7 @@ from app.schemas.user import (
 )
 from app.services.user_service import (
     delete_current_user,
-    get_current_user_photo_path,
+    get_current_user_photo_content,
     remove_current_user_photo,
     update_current_user,
     upload_current_user_photo,
@@ -147,14 +146,22 @@ async def upload_profile_photo(
 
 @router.get(
     "/me/profile-photo",
-    response_class=FileResponse,
     summary="Get the authenticated user's profile photo",
 )
-def get_profile_photo(current_user: CurrentUser) -> FileResponse:
-    photo_path = get_current_user_photo_path(current_user)
-    if photo_path is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-    return FileResponse(photo_path)
+def get_profile_photo(current_user: CurrentUser) -> Response:
+    try:
+        result = get_current_user_photo_content(current_user)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Profile photo storage is temporarily unavailable",
+        ) from exc
+
+    if result is None:
+        raise HTTPException(status_code=404)
+
+    content, content_type = result
+    return Response(content=content, media_type=content_type)
 
 
 @router.delete(

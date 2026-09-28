@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from fastapi import UploadFile
 from sqlalchemy.orm import Session
 
@@ -12,6 +10,7 @@ from app.core.exceptions import (
 )
 from app.core.storage import (
     delete_stored_file,
+    download_stored_file,
     save_upload_file,
 )
 from app.models.file import TripFile
@@ -268,21 +267,18 @@ def delete_file_from_trip(
         trip_file=trip_file,
     )
 
-def get_trip_file_path(
+def get_trip_file_content(
     db: Session,
     trip_id: int,
     file_id: int,
     user: User,
-) -> tuple[Path, TripFile]:
+) -> tuple[bytes, TripFile]:
     trip = get_trip_or_raise(
         db=db,
         trip_id=trip_id,
         user_id=user.id,
     )
-
-    validate_completed_trip(
-        trip=trip,
-    )
+    validate_completed_trip(trip)
 
     trip_file = get_trip_file_or_raise(
         db=db,
@@ -290,9 +286,9 @@ def get_trip_file_path(
         file_id=file_id,
     )
 
-    file_path = Path(trip_file.path)
+    try:
+        content = download_stored_file(trip_file.path)
+    except Exception as exc:
+        raise TripFileStorageError from exc
 
-    if not file_path.is_file():
-        raise TripFileNotFoundError
-
-    return file_path, trip_file
+    return content, trip_file

@@ -1,5 +1,6 @@
+import mimetypes
+from urllib.parse import quote
 from typing import Annotated
-from fastapi.responses import FileResponse
 from fastapi import (
     APIRouter,
     Depends,
@@ -26,7 +27,7 @@ from app.services.file_service import (
     add_files_to_trip,
     delete_file_from_trip,
     get_files_from_trip,
-    get_trip_file_path,
+    get_trip_file_content,
 )
 
 
@@ -136,7 +137,6 @@ async def upload_trip_files(
 
 @router.get(
     "/{file_id}/content",
-    response_class=FileResponse,
     summary="Open a file from a trip",
 )
 def open_trip_file(
@@ -144,68 +144,44 @@ def open_trip_file(
     file_id: int,
     current_user: CurrentUser,
     db: DatabaseSession,
-) -> FileResponse:
+) -> Response:
     try:
-        file_path, trip_file = get_trip_file_path(
+        content, trip_file = get_trip_file_content(
             db=db,
             trip_id=trip_id,
             file_id=file_id,
             user=current_user,
         )
-
-        return FileResponse(
-            path=file_path,
-            filename=trip_file.name,
-            content_disposition_type="inline",
-        )
-
-    except TripNotFoundError as exc:
+    except (TripNotFoundError, TripFileNotFoundError) as exc:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Trip not found",
-        ) from exc
-
-    except TripNotCompletedError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Files can only be accessed for completed trips",
-        ) from exc
-
-    except TripFileNotFoundError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=404,
             detail="File not found",
         ) from exc
-
-@router.get(
-    "/{file_id}/content",
-    response_class=FileResponse,
-    summary="Open a file from a trip",
-)
-def open_trip_file(
-    trip_id: int,
-    file_id: int,
-    current_user: CurrentUser,
-    db: DatabaseSession,
-) -> FileResponse:
-    try:
-        file_path, trip_file = get_trip_file_path(
-            db=db, trip_id=trip_id, file_id=file_id, user=current_user,
-        )
-        return FileResponse(
-            path=file_path,
-            filename=trip_file.name,
-            content_disposition_type="inline",
-        )
-    except TripNotFoundError as exc:
-        raise HTTPException(status_code=404, detail="Trip not found") from exc
     except TripNotCompletedError as exc:
         raise HTTPException(
             status_code=409,
             detail="Files can only be accessed for completed trips",
         ) from exc
-    except TripFileNotFoundError as exc:
-        raise HTTPException(status_code=404, detail="File not found") from exc
+    except TripFileStorageError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="File storage is temporarily unavailable",
+        ) from exc
+
+    content_type = (
+        mimetypes.guess_type(trip_file.name)[0]
+        or "application/octet-stream"
+    )
+    filename = quote(trip_file.name)
+
+    return Response(
+        content=content,
+        media_type=content_type,
+        headers={
+            "Content-Disposition":
+                f"inline; filename*=UTF-8''{filename}"
+        },
+    )
 
 
 @router.delete(

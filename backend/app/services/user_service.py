@@ -1,5 +1,4 @@
 from decimal import ROUND_HALF_UP, Decimal
-from pathlib import Path
 
 from fastapi import UploadFile
 from sqlalchemy.orm import Session
@@ -21,7 +20,11 @@ from app.services.currency_service import (
     convert_currency,
     validate_currency_code,
 )
-from app.core.storage import delete_profile_image, save_profile_image
+from app.core.storage import (
+    delete_profile_image,
+    download_profile_image,
+    save_profile_image,
+)
 
 
 def update_current_user(
@@ -134,13 +137,19 @@ async def upload_current_user_photo(
     return updated_user
 
 
-def get_current_user_photo_path(user: User) -> Path | None:
+def get_current_user_photo_content(
+    user: User,
+) -> tuple[bytes, str] | None:
     if not user.profile_photo:
         return None
-    photo_path = Path(user.profile_photo).resolve()
-    if not photo_path.is_file():
-        return None
-    return photo_path
+
+    content = download_profile_image(user.profile_photo)
+    content_type = (
+        "image/png"
+        if user.profile_photo.endswith(".png")
+        else "image/jpeg"
+    )
+    return content, content_type
 
 
 def remove_current_user_photo(db: Session, user: User) -> None:

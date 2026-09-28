@@ -11,18 +11,16 @@ dependencies = [
     "pydantic-settings",
     "email-validator",
     "pwdlib[argon2]",
-    "alembic",
     "PyJWT",
     "httpx",
     "python-multipart",
     "reportlab",
+    "supabase",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "httpx",
     "pytest",
-    "pytest-asyncio",
     "pytest-cov",
     "ruff",
 ]
