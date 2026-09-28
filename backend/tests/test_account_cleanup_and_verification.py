@@ -5,7 +5,7 @@ import pytest
 
 from app.core.exceptions import (
     EmailAlreadyRegisteredError,
-    PendingRegistrationNotFoundError,
+    InvalidCredentialsError,
     InvalidVerificationTokenError,
     RegistrationExpiredError,
     VerificationCooldownError,
@@ -62,42 +62,57 @@ def test_email_token_is_bound_to_current_address(monkeypatch):
 
 
 def test_expired_registration_cannot_verify_or_resend(monkeypatch):
-    user = SimpleNamespace(id=7, email="ana@example.com", email_verified=False,
+    user = SimpleNamespace(id=7, email="ana@example.com", username="ana", hashed_password="hash", email_verified=False,
                            registration_expires_at=datetime.now(UTC) - timedelta(seconds=1),
                            verification_sent_at=None)
     monkeypatch.setattr(auth_service, "get_user_by_id", lambda **kwargs: user)
+    monkeypatch.setattr(auth_service, "get_user_by_username", lambda **kwargs: user)
+    monkeypatch.setattr(auth_service, "verify_password", lambda *args, **kwargs: True)
     monkeypatch.setattr(auth_service, "get_user_by_email", lambda **kwargs: user)
     with pytest.raises(RegistrationExpiredError):
         auth_service.verify_email(object(), create_email_verification_token("7", user.email))
     with pytest.raises(RegistrationExpiredError):
-        auth_service.resend_verification(object(), user.email)
+        auth_service.resend_verification(object(), "ana", "password", user.email)
 
 
 def test_resend_during_cooldown_reports_no_email_was_sent(monkeypatch):
-    user = SimpleNamespace(email="ana@example.com", email_verified=False,
+    user = SimpleNamespace(id=1, email="ana@example.com", hashed_password="hash", email_verified=False,
                            registration_expires_at=datetime.now(UTC) + timedelta(hours=1),
                            verification_sent_at=datetime.now(UTC))
+    monkeypatch.setattr(auth_service, "get_user_by_username", lambda **kwargs: user)
+    monkeypatch.setattr(auth_service, "verify_password", lambda *args, **kwargs: True)
     monkeypatch.setattr(auth_service, "get_user_by_email", lambda **kwargs: user)
     monkeypatch.setattr(auth_service, "send_verification_email", lambda user: pytest.fail("sent during cooldown"))
     with pytest.raises(VerificationCooldownError):
-        auth_service.resend_verification(object(), user.email)
+        auth_service.resend_verification(object(), "ana", "password", user.email)
 
 
 def test_change_pending_email_rejects_registered_address(monkeypatch):
-    user = SimpleNamespace(email="ana@example.com", hashed_password="hash", email_verified=False,
-                           registration_expires_at=datetime.now(UTC) + timedelta(hours=1))
+    user = SimpleNamespace(id=1, email="ana@example.com", hashed_password="hash", email_verified=False,
+                           registration_expires_at=datetime.now(UTC) + timedelta(hours=1),
+                           verification_sent_at=datetime.now(UTC) - timedelta(seconds=21))
+    monkeypatch.setattr(auth_service, "get_user_by_username", lambda **kwargs: user)
     monkeypatch.setattr(auth_service, "get_user_by_email", lambda **kwargs:
                         user if kwargs["email"] == user.email else SimpleNamespace(id=2))
     monkeypatch.setattr(auth_service, "verify_password", lambda *args, **kwargs: True)
     with pytest.raises(EmailAlreadyRegisteredError):
-        auth_service.change_pending_email(object(), user.email, "correct-password", "used@example.com")
+        auth_service.resend_verification(object(), "ana", "correct-password", "used@example.com")
     assert user.email == "ana@example.com"
 
 
-def test_resend_reports_missing_or_already_verified_email(monkeypatch):
+def test_resend_requires_password_and_changes_destination(monkeypatch):
+    user = SimpleNamespace(id=1, username="ana", email="old@example.com", hashed_password="hash",
+                           email_verified=False, registration_expires_at=datetime.now(UTC) + timedelta(hours=1),
+                           verification_sent_at=datetime.now(UTC) - timedelta(seconds=21))
+    monkeypatch.setattr(auth_service, "get_user_by_username", lambda **kwargs: user)
+    monkeypatch.setattr(auth_service, "verify_password", lambda *args, **kwargs: False)
+    with pytest.raises(InvalidCredentialsError):
+        auth_service.resend_verification(object(), "ana", "bad-password", "new@example.com")
+    monkeypatch.setattr(auth_service, "verify_password", lambda *args, **kwargs: True)
     monkeypatch.setattr(auth_service, "get_user_by_email", lambda **kwargs: None)
-    with pytest.raises(PendingRegistrationNotFoundError):
-        auth_service.resend_verification(object(), "missing@example.com")
-    monkeypatch.setattr(auth_service, "get_user_by_email", lambda **kwargs: SimpleNamespace(email_verified=True))
-    with pytest.raises(EmailAlreadyRegisteredError):
-        auth_service.resend_verification(object(), "used@example.com")
+    monkeypatch.setattr(auth_service, "update_user", lambda **kwargs: kwargs["user"])
+    sent = []
+    monkeypatch.setattr(auth_service, "send_verification_email", lambda user: sent.append(user.email))
+    assert auth_service.resend_verification(object(), "ana", "password", "new@example.com") == "ana"
+    assert sent == ["new@example.com"]
+    assert user.email == "new@example.com"

@@ -94,7 +94,7 @@ export function RegisterPage() {
         password: form.password,
         default_currency: form.defaultCurrency,
       }),
-    onSuccess: () => navigate('/verificar-correo', { state: { email: form.email } }),
+    onSuccess: () => navigate('/verificar-correo', { state: { email: form.email, identifier: form.username } }),
   })
 
   const submit = (event: FormEvent) => {

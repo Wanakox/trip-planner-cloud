@@ -110,7 +110,7 @@ export function LoginPage() {
                     ? 'Verifica tu correo electrónico antes de iniciar sesión.'
                     : 'El correo, usuario o contraseña no son correctos.'}
                   {needsVerification && (
-                    <Button onClick={() => navigate('/verificar-correo', { state: { email: identifier.includes('@') ? identifier : '' } })}>
+                    <Button onClick={() => navigate('/verificar-correo', { state: { identifier: identifier.includes('@') ? '' : identifier, email: identifier.includes('@') ? identifier : '' } })}>
                       Solicitar otro enlace
                     </Button>
                   )}

@@ -4,26 +4,32 @@ import { useMutation } from '@tanstack/react-query'
 import { Link as RouterLink, useLocation } from 'react-router-dom'
 import { isAxiosError } from 'axios'
 
-import { changePendingEmail, resendVerification, verifyEmail } from '../api/auth'
+import { resendVerification, verifyEmail } from '../api/auth'
 import { AuthCard } from '../components/AuthCard'
 
 export function VerifyEmailPage() {
   const location = useLocation()
-  const [email, setEmail] = useState((location.state as { email?: string } | null)?.email ?? '')
-  const [newEmail, setNewEmail] = useState('')
+  const initialState = location.state as { email?: string; identifier?: string } | null
+  const [email, setEmail] = useState(initialState?.email ?? '')
+  const [identifier, setIdentifier] = useState(initialState?.identifier ?? '')
   const [password, setPassword] = useState('')
   const [token] = useState(() => new URLSearchParams(window.location.search).get('token'))
   const verification = useMutation({ mutationFn: verifyEmail })
-  const resend = useMutation({ mutationFn: resendVerification })
-  const changeEmail = useMutation({
-    mutationFn: () => changePendingEmail(email, password, newEmail),
-    onSuccess: () => {
-      setEmail(newEmail.trim().toLowerCase())
-      setNewEmail('')
+  const [secondsRemaining, setSecondsRemaining] = useState(0)
+  const resend = useMutation({
+    mutationFn: () => resendVerification(identifier, password, email),
+    onSuccess: ({ username }) => {
+      setIdentifier(username)
       setPassword('')
-      resend.reset()
+      setSecondsRemaining(20)
     },
   })
+
+  useEffect(() => {
+    if (!secondsRemaining) return
+    const timer = window.setTimeout(() => setSecondsRemaining(secondsRemaining - 1), 1000)
+    return () => window.clearTimeout(timer)
+  }, [secondsRemaining])
 
   function errorMessage(error: unknown): string {
     if (isAxiosError(error) && typeof error.response?.data?.detail === 'string') {
@@ -50,21 +56,13 @@ export function VerifyEmailPage() {
           {verification.isError && <Alert severity="error">{errorMessage(verification.error)}</Alert>}
           {resend.isSuccess && <Alert severity="success">Hemos enviado el enlace. Revisa también Spam.</Alert>}
           {resend.isError && <Alert severity="error">{errorMessage(resend.error)}</Alert>}
-          <Box component="form" onSubmit={(event) => { event.preventDefault(); resend.reset(); resend.mutate(email) }}>
+          <Typography variant="body2">Puedes enviarlo a otra dirección. Por seguridad, confirma tu nombre de usuario y contraseña. Al verificar el enlace, la cuenta usará el correo de destino.</Typography>
+          <Box component="form" onSubmit={(event) => { event.preventDefault(); resend.reset(); resend.mutate() }}>
             <Stack spacing={2}>
-              <TextField type="email" label="Correo usado al registrarte" value={email} onChange={(event) => { setEmail(event.target.value); resend.reset() }} required />
-              <Button type="submit" variant="contained" disabled={resend.isPending || !email.trim()}>{resend.isPending ? 'Enviando…' : 'Reenviar enlace'}</Button>
-            </Stack>
-          </Box>
-          <Typography variant="h6">¿Te equivocaste de correo?</Typography>
-          <Typography variant="body2">Indica el correo usado al registrarte arriba, tu contraseña y la nueva dirección. La nueva dirección no puede pertenecer a otra cuenta.</Typography>
-          {changeEmail.isSuccess && <Alert severity="success">Correo cambiado. Hemos enviado un enlace a {email}.</Alert>}
-          {changeEmail.isError && <Alert severity="error">{errorMessage(changeEmail.error)}</Alert>}
-          <Box component="form" onSubmit={(event) => { event.preventDefault(); changeEmail.mutate() }}>
-            <Stack spacing={2}>
-              <TextField label="Nuevo correo electrónico" type="email" value={newEmail} onChange={(event) => { setNewEmail(event.target.value); changeEmail.reset() }} required />
-              <TextField label="Contraseña de tu cuenta" type="password" value={password} onChange={(event) => setPassword(event.target.value)} required />
-              <Button type="submit" disabled={changeEmail.isPending || !email.trim()}>{changeEmail.isPending ? 'Cambiando…' : 'Cambiar correo y enviar enlace'}</Button>
+              <TextField label="Nombre de usuario" value={identifier} onChange={(event) => setIdentifier(event.target.value)} required />
+              <TextField type="email" label="Correo donde recibir el enlace" value={email} onChange={(event) => { setEmail(event.target.value); resend.reset() }} required />
+              <TextField type="password" label="Contraseña de la cuenta" value={password} onChange={(event) => setPassword(event.target.value)} required />
+              <Button type="submit" variant="contained" disabled={resend.isPending || secondsRemaining > 0 || !identifier.trim()}>{resend.isPending ? 'Enviando…' : secondsRemaining ? `Reenviar en ${secondsRemaining} s` : 'Enviar enlace'}</Button>
             </Stack>
           </Box>
           <Button component={RouterLink} to="/iniciar-sesion">Ir a iniciar sesión</Button>

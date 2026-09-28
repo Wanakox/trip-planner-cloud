@@ -43,15 +43,11 @@ class EmailDeliveryError(TripPlannerError):
 
 
 class VerificationCooldownError(TripPlannerError):
-    default_message = "Espera un minuto antes de solicitar otro enlace."
+    default_message = "Espera 20 segundos antes de solicitar otro enlace."
 
 
 class RegistrationExpiredError(TripPlannerError):
     default_message = "El plazo de registro ha caducado. Vuelve a crear la cuenta."
-
-
-class PendingRegistrationNotFoundError(TripPlannerError):
-    default_message = "No hay ninguna cuenta pendiente con ese correo. Para cambiarlo, usa el formulario inferior."
 
 
 # ============================================================

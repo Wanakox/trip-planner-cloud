@@ -29,14 +29,11 @@ export async function verifyEmail(token: string) {
   await httpClient.post('/auth/verify-email', { token })
 }
 
-export async function resendVerification(email: string) {
-  await httpClient.post('/auth/resend-verification', { email })
-}
-
-export async function changePendingEmail(currentEmail: string, password: string, newEmail: string) {
-  await httpClient.post('/auth/change-pending-email', {
-    current_email: currentEmail,
+export async function resendVerification(identifier: string, password: string, email: string) {
+  const { data } = await httpClient.post<{ username: string; message: string }>('/auth/resend-verification', {
+    identifier,
     password,
-    new_email: newEmail,
+    email,
   })
+  return data
 }

@@ -15,7 +15,6 @@ from app.core.exceptions import (
     EmailNotVerifiedError,
     RegistrationExpiredError,
     VerificationCooldownError,
-    PendingRegistrationNotFoundError,
     InvalidVerificationTokenError,
     InvalidCredentialsError,
     UsernameAlreadyRegisteredError,
@@ -23,8 +22,8 @@ from app.core.exceptions import (
 from app.db.dependencies import get_db
 from app.schemas.user import (
     LoginRequest,
-    ChangePendingEmailRequest,
     ResendVerificationRequest,
+    ResendVerificationResponse,
     RefreshTokenRequest,
     TokenResponse,
     UserCreate,
@@ -32,7 +31,6 @@ from app.schemas.user import (
     VerifyEmailRequest,
 )
 from app.services.auth_service import (
-    change_pending_email,
     login_user,
     refresh_access_token,
     register_user,
@@ -156,10 +154,10 @@ def verify_email_endpoint(data: VerifyEmailRequest, db: DatabaseSession) -> None
         raise HTTPException(status_code=410, detail=str(exc)) from exc
 
 
-@router.post("/resend-verification", status_code=202, summary="Resend verification email")
-def resend_verification_endpoint(data: ResendVerificationRequest, db: DatabaseSession) -> dict[str, str]:
+@router.post("/resend-verification", status_code=202, response_model=ResendVerificationResponse, summary="Send verification email")
+def resend_verification_endpoint(data: ResendVerificationRequest, db: DatabaseSession) -> ResendVerificationResponse:
     try:
-        resend_verification(db, str(data.email))
+        username = resend_verification(db, data.identifier, data.password, str(data.email))
     except EmailDeliveryError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except RegistrationExpiredError as exc:
@@ -167,21 +165,9 @@ def resend_verification_endpoint(data: ResendVerificationRequest, db: DatabaseSe
     except VerificationCooldownError as exc:
         raise HTTPException(status_code=429, detail=str(exc)) from exc
     except EmailAlreadyRegisteredError as exc:
-        raise HTTPException(status_code=409, detail="Ese correo ya está asociado a una cuenta verificada") from exc
-    except PendingRegistrationNotFoundError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
-    return {"message": "Hemos enviado un enlace de verificación."}
-
-
-@router.post("/change-pending-email", status_code=204, summary="Change email before verification")
-def change_pending_email_endpoint(data: ChangePendingEmailRequest, db: DatabaseSession) -> None:
-    try:
-        change_pending_email(db, str(data.current_email), data.password, str(data.new_email))
+        raise HTTPException(status_code=409, detail="Ese correo ya está asociado a otra cuenta") from exc
     except InvalidCredentialsError as exc:
-        raise HTTPException(status_code=401, detail="Correo actual o contraseña incorrectos") from exc
-    except EmailAlreadyRegisteredError as exc:
-        raise HTTPException(status_code=409, detail="Ese correo ya está asociado a una cuenta") from exc
-    except RegistrationExpiredError as exc:
-        raise HTTPException(status_code=410, detail=str(exc)) from exc
-    except EmailDeliveryError as exc:
-        raise HTTPException(status_code=503, detail="Correo cambiado, pero no se pudo enviar el enlace. Solicita otro.") from exc
+        raise HTTPException(status_code=401, detail="Nombre de usuario o contraseña incorrectos") from exc
+    except EmailNotVerifiedError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return ResendVerificationResponse(username=username, message="Hemos enviado un enlace de verificación.")
