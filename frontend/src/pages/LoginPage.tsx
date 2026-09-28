@@ -9,7 +9,7 @@ import {
   Typography,
 } from '@mui/material'
 import { useMutation } from '@tanstack/react-query'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { isAxiosError } from 'axios'
 
 import { loginUser } from '../api/auth'
@@ -19,6 +19,8 @@ import { BrandLogo } from '../components/BrandLogo'
 
 export function LoginPage() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const emailVerified = (location.state as { emailVerified?: boolean } | null)?.emailVerified === true
 
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
@@ -104,6 +106,7 @@ export function LoginPage() {
                 mutation.mutate()
               }}
             >
+              {emailVerified && <Alert severity="success">Correo verificado. Ya puedes iniciar sesión.</Alert>}
               {mutation.isError && (
                 <Alert severity="error">
                   {needsVerification

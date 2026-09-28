@@ -180,15 +180,36 @@ def verify_email(db: Session, token: str) -> None:
         update_user(db=db, user=user)
 
 
-def resend_verification(db: Session, identifier: str, password: str, email: str) -> str:
-    user = get_user_by_username(db=db, username=identifier.strip())
+def _send_if_due(db: Session, user: User) -> None:
+    if user.email_verified:
+        raise EmailNotVerifiedError("El correo de esta cuenta ya está verificado.")
+    if _registration_expired(user):
+        raise RegistrationExpiredError
+    now = datetime.now(UTC)
+    last_sent = user.verification_sent_at
+    if last_sent is not None and now - last_sent.replace(tzinfo=UTC) < timedelta(seconds=20):
+        raise VerificationCooldownError
+    send_verification_email(user)
+    user.verification_sent_at = now
+    update_user(db=db, user=user)
+
+
+def resend_verification(db: Session, email: str) -> None:
+    user = get_user_by_email(db=db, email=email.strip().lower())
+    if user is None:
+        raise InvalidCredentialsError("No existe una cuenta pendiente con ese correo.")
+    _send_if_due(db, user)
+
+
+def change_pending_email(db: Session, current_email: str, password: str, new_email: str) -> None:
+    user = get_user_by_email(db=db, email=current_email.strip().lower())
     if user is None or not verify_password(password, user.hashed_password):
         raise InvalidCredentialsError
     if user.email_verified:
         raise EmailNotVerifiedError("El correo de esta cuenta ya está verificado.")
     if _registration_expired(user):
         raise RegistrationExpiredError
-    normalized_email = email.strip().lower()
+    normalized_email = new_email.strip().lower()
     existing_user = get_user_by_email(db=db, email=normalized_email)
     if existing_user is not None and existing_user.id != user.id:
         raise EmailAlreadyRegisteredError
@@ -196,10 +217,6 @@ def resend_verification(db: Session, identifier: str, password: str, email: str)
     last_sent = user.verification_sent_at
     if last_sent is not None and now - last_sent.replace(tzinfo=UTC) < timedelta(seconds=20):
         raise VerificationCooldownError
-    if normalized_email != user.email:
-        user.email = normalized_email
-        update_user(db=db, user=user)
-    send_verification_email(user)
-    user.verification_sent_at = now
+    user.email = normalized_email
     update_user(db=db, user=user)
-    return user.username
+    _send_if_due(db, user)

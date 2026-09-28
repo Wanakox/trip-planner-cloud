@@ -22,6 +22,7 @@ from app.core.exceptions import (
 from app.db.dependencies import get_db
 from app.schemas.user import (
     LoginRequest,
+    ChangePendingEmailRequest,
     ResendVerificationRequest,
     ResendVerificationResponse,
     RefreshTokenRequest,
@@ -31,6 +32,7 @@ from app.schemas.user import (
     VerifyEmailRequest,
 )
 from app.services.auth_service import (
+    change_pending_email,
     login_user,
     refresh_access_token,
     register_user,
@@ -157,7 +159,7 @@ def verify_email_endpoint(data: VerifyEmailRequest, db: DatabaseSession) -> None
 @router.post("/resend-verification", status_code=202, response_model=ResendVerificationResponse, summary="Send verification email")
 def resend_verification_endpoint(data: ResendVerificationRequest, db: DatabaseSession) -> ResendVerificationResponse:
     try:
-        username = resend_verification(db, data.identifier, data.password, str(data.email))
+        resend_verification(db, str(data.email))
     except EmailDeliveryError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except RegistrationExpiredError as exc:
@@ -170,4 +172,22 @@ def resend_verification_endpoint(data: ResendVerificationRequest, db: DatabaseSe
         raise HTTPException(status_code=401, detail="Nombre de usuario o contraseña incorrectos") from exc
     except EmailNotVerifiedError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
-    return ResendVerificationResponse(username=username, message="Hemos enviado un enlace de verificación.")
+    return ResendVerificationResponse(message="Hemos enviado un enlace de verificación.")
+
+
+@router.post("/change-pending-email", status_code=204, summary="Send verification to another email")
+def change_pending_email_endpoint(data: ChangePendingEmailRequest, db: DatabaseSession) -> None:
+    try:
+        change_pending_email(db, str(data.current_email), data.password, str(data.new_email))
+    except EmailAlreadyRegisteredError as exc:
+        raise HTTPException(status_code=409, detail="Ese correo ya está asociado a otra cuenta") from exc
+    except InvalidCredentialsError as exc:
+        raise HTTPException(status_code=401, detail="Correo de la cuenta o contraseña incorrectos") from exc
+    except EmailNotVerifiedError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except RegistrationExpiredError as exc:
+        raise HTTPException(status_code=410, detail=str(exc)) from exc
+    except VerificationCooldownError as exc:
+        raise HTTPException(status_code=429, detail=str(exc)) from exc
+    except EmailDeliveryError as exc:
+        raise HTTPException(status_code=503, detail="Correo actualizado, pero el envío falló. Reintenta con la nueva dirección.") from exc
