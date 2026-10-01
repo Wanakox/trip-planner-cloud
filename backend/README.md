@@ -1,22 +1,81 @@
 # TripPlanner Backend
 
-The TripPlanner backend is a REST API developed with FastAPI and PostgreSQL. It provides the server-side foundation for managing users, trips, destinations, activities, transportation, accommodation, expenses, participants, checklists, notes, and files.
+Backend service for **TripPlanner**, a full-stack travel planning application.
 
-The backend runs inside Docker and is designed to be reproducible across development environments and future deployment targets, including a Raspberry Pi.
+The backend is built with **FastAPI**, **SQLAlchemy** and **PostgreSQL**, and exposes a versioned REST API for authentication, user management, trips, destinations, activities, transport, accommodation, expenses, participants, checklists, notes, file management, PDF export and supporting services.
+
+This repository contains the **currently maintained cloud version** of the backend.
+
+> The original academic version developed as part of my Final Degree Project is available in:  
+> **https://github.com/Wanakox/trip-planner**
+
+---
+
+## Production Deployment
+
+The backend is currently deployed as a **Render Web Service** and uses **Supabase** for PostgreSQL and file storage.
+
+- **Backend:** https://trip-planner-cloud.onrender.com
+- **Swagger / OpenAPI:** https://trip-planner-cloud.onrender.com/docs
+- **Health check:** https://trip-planner-cloud.onrender.com/api/v1/health
+- **Frontend:** https://trip-planner-frontend-vnir.onrender.com
+
+---
 
 ## Main Technologies
 
 - Python 3.12
 - FastAPI
 - SQLAlchemy
-- PostgreSQL 17
+- PostgreSQL
 - Psycopg
-- Pydantic Settings
+- Pydantic / Pydantic Settings
+- PyJWT
+- pwdlib with Argon2
+- Supabase
+- HTTPX
+- ReportLab
 - Pytest
+- Pytest-Cov
 - Ruff
 - Uvicorn
-- Docker
-- Docker Compose
+
+---
+
+## Architecture
+
+The backend follows a layered architecture with separation of responsibilities.
+
+```text
+HTTP Request
+    │
+    ▼
+┌───────────────────────┐
+│ Routers / Endpoints   │
+└──────────┬────────────┘
+           │
+           ▼
+┌───────────────────────┐
+│ Services              │
+│ Business logic        │
+└──────────┬────────────┘
+           │
+           ▼
+┌───────────────────────┐
+│ Repositories          │
+│ Persistence logic     │
+└──────────┬────────────┘
+           │
+           ▼
+┌───────────────────────┐
+│ SQLAlchemy / Supabase │
+│ PostgreSQL            │
+└───────────────────────┘
+```
+
+Additional shared responsibilities are grouped under `core/`, while external integrations are isolated from the application logic.
+
+---
 
 ## Directory Structure
 
@@ -26,69 +85,410 @@ backend/
 │   ├── api/
 │   │   └── v1/
 │   │       ├── endpoints/
-│   │       │   └── health.py
 │   │       └── router.py
 │   ├── core/
-│   │   └── config.py
+│   ├── integrations/
+│   ├── models/
+│   ├── repositories/
+│   ├── schemas/
+│   ├── services/
 │   ├── db/
-│   │   └── session.py
 │   ├── __init__.py
 │   └── main.py
+├── database/
+│   ├── schema.sql
+│   └── supabase_setup.sql
 ├── tests/
-│   ├── __init__.py
-│   └── test_health.py
-├── .dockerignore
 ├── .env.example
-├── Dockerfile
 ├── pyproject.toml
-├── README.md
-└── start.sh
+└── README.md
 ```
 
-## Directory Description
+---
 
-### `app/`
-
-Main Python package of the backend application.
+## Main Modules
 
 ### `app/main.py`
 
 FastAPI application entry point.
 
-This file:
+It:
 
 - creates the FastAPI application instance;
-- configures the application metadata;
-- enables the OpenAPI documentation;
+- configures metadata;
+- enables OpenAPI documentation;
 - includes the main API router;
-- exposes the root endpoint.
+- applies application-level middleware and settings;
+- exposes the backend service.
 
 The API is served with Uvicorn.
 
 ### `app/api/`
 
-Contains the HTTP API routes.
+Contains the HTTP API.
 
-The current API version is organized under:
+The current API version is exposed under:
 
 ```text
 /api/v1
 ```
 
-### `app/api/v1/endpoints/`
+Endpoints are grouped by resource and responsibility, including authentication, users, trips, destinations, activities, transport, accommodation, expenses, participants, tasks, notes, files, exports, currency and health checks.
 
-Contains the endpoints grouped by resource or functional area.
+### `app/core/`
 
-The current implementation includes:
+Contains shared infrastructure and configuration.
+
+Typical responsibilities include:
+
+- application settings;
+- JWT configuration;
+- security helpers;
+- exception handling;
+- file and storage helpers;
+- reusable infrastructure.
+
+### `app/db/`
+
+Contains SQLAlchemy database session configuration.
+
+It creates:
+
+- the SQLAlchemy engine;
+- the session factory;
+- the database dependency used by the application.
+
+The database URL is loaded from environment configuration.
+
+### `app/models/`
+
+Contains SQLAlchemy persistence models representing the relational database entities.
+
+### `app/schemas/`
+
+Contains Pydantic schemas used for:
+
+- request validation;
+- response serialization;
+- data transfer between application layers.
+
+### `app/repositories/`
+
+Contains persistence and database query logic.
+
+Repositories isolate SQLAlchemy access from higher application layers.
+
+### `app/services/`
+
+Contains application and business logic.
+
+Services coordinate repositories, validation, external integrations and transaction handling.
+
+### `app/integrations/`
+
+Contains integrations with external services used by the backend.
+
+### `tests/`
+
+Contains the automated backend test suite.
+
+Tests use **Pytest**, FastAPI's **TestClient**, fixtures, mocks and monkeypatching where appropriate.
+
+---
+
+## Main Functional Areas
+
+The backend currently supports:
+
+- User registration
+- Email verification
+- Login and JWT authentication
+- Access and refresh tokens
+- Profile management
+- Default currency selection
+- Account deletion
+- Trip CRUD
+- Destination CRUD and reordering
+- Activity CRUD, completion and reordering
+- Transport management
+- Accommodation management
+- Participant management
+- Expense tracking
+- Checklists and tasks
+- Notes
+- File upload and deletion
+- Profile image storage
+- PDF trip export
+- Currency conversion
+- Health monitoring
+
+---
+
+## Authentication and Security
+
+Authentication is based on JWT access and refresh tokens.
+
+Default token lifetimes:
 
 ```text
-health.py
+Access token: 30 minutes
+Refresh token: 7 days
 ```
 
-The health endpoint checks that:
+The backend also includes:
 
-- the FastAPI application is running;
-- the PostgreSQL database is reachable.
+- password hashing with Argon2;
+- protected API routes;
+- resource ownership checks;
+- server-side validation;
+- email verification before login;
+- environment-based secrets;
+- file ownership validation;
+- cascading deletion of related data.
+
+JWT secrets and infrastructure credentials must never be committed to Git.
+
+---
+
+## Email Verification
+
+Account verification is performed by email before login is allowed.
+
+The backend uses **Brevo SMTP** for outgoing verification emails.
+
+Relevant environment variables include:
+
+```text
+SMTP_HOST
+SMTP_PORT
+SMTP_USERNAME
+SMTP_PASSWORD
+SMTP_FROM_EMAIL
+FRONTEND_URL
+```
+
+Verification links expire after a limited period.
+
+Unverified registrations can be removed automatically using a Supabase/PostgreSQL scheduled cleanup job.
+
+---
+
+## Database
+
+The backend uses PostgreSQL through SQLAlchemy.
+
+### Relational schema
+
+The canonical relational schema is stored in:
+
+```text
+database/schema.sql
+```
+
+This file represents the current database structure for a fresh installation.
+
+### Supabase-specific setup
+
+Provider-specific database configuration is stored separately in:
+
+```text
+database/supabase_setup.sql
+```
+
+This can contain features such as scheduled cleanup jobs that depend on Supabase or PostgreSQL extensions such as `pg_cron`.
+
+Keeping provider-specific configuration separate avoids coupling the main relational schema to Supabase.
+
+---
+
+## File Storage
+
+The cloud deployment uses **Supabase Storage**.
+
+Files include:
+
+- user profile pictures;
+- trip documents.
+
+When a trip or account is deleted, the application attempts to remove the associated storage objects before deleting the related database rows.
+
+Storage and PostgreSQL do not share a distributed transaction, so storage failures are handled defensively to reduce inconsistent states.
+
+---
+
+## Environment Variables
+
+Create a local environment file from the template:
+
+```bash
+cp .env.example .env
+```
+
+The backend configuration includes variables such as:
+
+```dotenv
+DATABASE_URL=postgresql+psycopg://user:password@host:5432/database
+
+BACKEND_HOST=0.0.0.0
+BACKEND_PORT=8000
+BACKEND_RELOAD=false
+
+JWT_SECRET_KEY=replace-with-random-secret
+
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SECRET_KEY=replace-with-supabase-secret
+
+SMTP_HOST=smtp-relay.brevo.com
+SMTP_PORT=2525
+SMTP_USERNAME=replace-with-brevo-smtp-login
+SMTP_PASSWORD=replace-with-brevo-smtp-key
+SMTP_FROM_EMAIL=verified-sender@example.com
+
+FRONTEND_URL=http://localhost:5173
+```
+
+Real credentials must never be committed.
+
+---
+
+## Local Development
+
+Requirements:
+
+- Python 3.12+
+- PostgreSQL-compatible database
+- Python virtual environment recommended
+
+From the `backend/` directory:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev]"
+cp .env.example .env
+```
+
+Configure the required environment variables in `.env`, then start the API:
+
+```bash
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+The backend will be available at:
+
+```text
+http://localhost:8000
+```
+
+Swagger:
+
+```text
+http://localhost:8000/docs
+```
+
+ReDoc:
+
+```text
+http://localhost:8000/redoc
+```
+
+Health check:
+
+```text
+http://localhost:8000/api/v1/health
+```
+
+---
+
+## Running Tests
+
+From the `backend/` directory:
+
+```bash
+pytest
+```
+
+For verbose output:
+
+```bash
+pytest -v
+```
+
+Run a specific test file:
+
+```bash
+pytest -v tests/test_health.py
+```
+
+Coverage is configured through `pyproject.toml`.
+
+---
+
+## Code Quality
+
+Check the backend with Ruff:
+
+```bash
+ruff check .
+```
+
+Check formatting:
+
+```bash
+ruff format --check .
+```
+
+Apply automatic linting fixes:
+
+```bash
+ruff check . --fix
+```
+
+Apply formatting:
+
+```bash
+ruff format .
+```
+
+Recommended validation before committing:
+
+```bash
+pytest
+ruff check .
+ruff format --check .
+```
+
+---
+
+## Cloud Deployment
+
+### Render
+
+The backend is deployed as a Render Web Service.
+
+Typical production start command:
+
+```bash
+uvicorn app.main:app --host 0.0.0.0 --port $PORT
+```
+
+Environment variables are configured in Render and are not stored in the repository.
+
+### Supabase
+
+Supabase provides:
+
+- PostgreSQL;
+- file storage;
+- provider-specific database features used by the project.
+
+### Brevo
+
+Brevo SMTP is used for verification email delivery.
+
+---
+
+## Health Check
 
 Available endpoint:
 
@@ -96,7 +496,9 @@ Available endpoint:
 GET /api/v1/health
 ```
 
-Expected successful response:
+A successful response indicates that the API is running and that the database is reachable.
+
+Example:
 
 ```json
 {
@@ -105,431 +507,52 @@ Expected successful response:
 }
 ```
 
-### `app/api/v1/router.py`
+---
 
-Main router for API version 1.
+## Development Practices
 
-It includes the routers defined in the different endpoint modules. Future modules such as authentication, users, trips, activities, and expenses will be registered here.
+The backend applies practices such as:
 
-### `app/core/`
+- layered architecture;
+- separation of responsibilities;
+- repository and service layers;
+- RESTful API design;
+- server-side validation;
+- transaction handling;
+- secure password hashing;
+- token-based authentication;
+- automated testing;
+- linting and formatting;
+- environment-based configuration;
+- version control with Git.
 
-Contains shared application configuration.
+---
 
-### `app/core/config.py`
+## Project Background
 
-Loads environment variables through Pydantic Settings and exposes the centralized backend configuration.
+TripPlanner originated as my Final Degree Project in Computer Engineering at the University of Córdoba.
 
-The configuration includes values such as:
+The original backend was part of the complete academic project and was initially deployed in a self-hosted environment.
 
-- application name;
-- API version;
-- backend host;
-- backend port;
-- reload mode;
-- PostgreSQL connection URL.
+Development later continued in this repository to adapt the application to a public cloud deployment using Render and Supabase.
 
-### `app/db/`
+Original academic repository:
 
-Contains the database configuration.
+**https://github.com/Wanakox/trip-planner**
 
-### `app/db/session.py`
+---
 
-Creates:
+## Author
 
-- the SQLAlchemy engine;
-- the SQLAlchemy session factory;
-- the connection configuration used to communicate with PostgreSQL.
+**Juan García Moreno**  
+Computer Engineering Graduate
 
-The database URL is obtained from the environment configuration.
+- GitHub: https://github.com/Wanakox
+- Portfolio: https://wanakox.github.io
+- LinkedIn: https://www.linkedin.com/in/juan-garcía-moreno
 
-### `tests/`
+---
 
-Contains the backend automated tests.
+## License
 
-Test files must follow the naming pattern:
-
-```text
-test_*.py
-```
-
-The current `test_health.py` verifies that:
-
-- the health endpoint returns HTTP 200 when the database is available;
-- the expected JSON response is returned;
-- the endpoint returns HTTP 503 when the database connection fails.
-
-### `Dockerfile`
-
-Defines the backend Docker image.
-
-The image:
-
-1. uses Python 3.12 Slim as its base;
-2. configures Python and pip environment variables;
-3. copies `pyproject.toml`;
-4. copies the application source code;
-5. installs the project and development dependencies;
-6. exposes port 8000;
-7. starts the API with Uvicorn.
-
-### `pyproject.toml`
-
-Defines:
-
-- project metadata;
-- runtime dependencies;
-- development dependencies;
-- Python version requirements;
-- Pytest configuration;
-- Ruff linting configuration;
-- Ruff formatting configuration;
-- the Python build system.
-
-### `start.sh`
-
-Starts the complete TripPlanner development environment from the repository root.
-
-The script:
-
-- checks that Docker is installed and available;
-- verifies that the root `.env` file exists;
-- verifies that `docker-compose.yml` exists;
-- starts the Docker Compose services;
-- optionally rebuilds the backend image;
-- waits until the health endpoint responds;
-- displays the service status and main URLs.
-
-Normal startup:
-
-```bash
-./backend/start.sh
-```
-
-Startup with image rebuild:
-
-```bash
-./backend/start.sh --build
-```
-
-The `--build` option should be used after changing files such as:
-
-- `Dockerfile`;
-- `pyproject.toml`;
-- dependency definitions.
-
-Changes inside `app/` normally do not require rebuilding because the source code is mounted as a Docker volume and Uvicorn runs with reload enabled.
-
-### `.dockerignore`
-
-Defines files and directories that must not be included in the Docker build context.
-
-This reduces build time and prevents unnecessary local files from being copied into the image.
-
-### `.env.example`
-
-Documents backend-specific environment variables without containing real secrets.
-
-The main environment configuration used by Docker Compose is located in the repository root:
-
-```text
-TripPlanner/.env
-```
-
-The real `.env` file must not be committed to Git.
-
-## Environment Requirements
-
-The backend development environment requires:
-
-- Docker Engine;
-- Docker Compose.
-
-Python, PostgreSQL, FastAPI, and the backend dependencies do not need to be installed directly on the host system.
-
-## Environment Variables
-
-From the repository root, create the local environment file:
-
-```bash
-cp .env.example .env
-```
-
-Example configuration:
-
-```dotenv
-POSTGRES_DB=tripplanner
-POSTGRES_USER=tripplanner
-POSTGRES_PASSWORD=change_me
-
-DATABASE_URL=postgresql+psycopg://tripplanner:change_me@database:5432/tripplanner
-
-BACKEND_HOST=0.0.0.0
-BACKEND_PORT=8000
-BACKEND_RELOAD=true
-
-PGADMIN_DEFAULT_EMAIL=admin@tripplanner.com
-PGADMIN_DEFAULT_PASSWORD=change_me
-```
-
-The example passwords must be replaced before using the application outside a local development environment.
-
-## Starting the Backend
-
-From the repository root:
-
-```bash
-./backend/start.sh
-```
-
-The environment can also be started directly with Docker Compose:
-
-```bash
-docker compose up -d
-```
-
-To rebuild the image:
-
-```bash
-docker compose up --build -d
-```
-
-## Available Services
-
-| Service | Address |
-|---|---|
-| API | `http://localhost:8000` |
-| Swagger UI | `http://localhost:8000/docs` |
-| ReDoc | `http://localhost:8000/redoc` |
-| Health check | `http://localhost:8000/api/v1/health` |
-| pgAdmin | `http://localhost:5050` |
-
-## Running Tests
-
-Run all backend tests:
-
-```bash
-docker compose exec backend pytest -v
-```
-
-The current expected result is:
-
-```text
-2 passed
-```
-
-Run a specific test file:
-
-```bash
-docker compose exec backend pytest -v tests/test_health.py
-```
-
-## Code Quality
-
-Check the backend with Ruff:
-
-```bash
-docker compose exec backend ruff check .
-```
-
-Check formatting:
-
-```bash
-docker compose exec backend ruff format --check .
-```
-
-Apply automatic linting fixes:
-
-```bash
-docker compose exec backend ruff check . --fix
-```
-
-Apply formatting:
-
-```bash
-docker compose exec backend ruff format .
-```
-
-Recommended validation before creating a commit:
-
-```bash
-docker compose exec backend pytest -v
-docker compose exec backend ruff check .
-docker compose exec backend ruff format --check .
-```
-
-## PostgreSQL Access
-
-Open a PostgreSQL console inside the database container:
-
-```bash
-docker compose exec database psql -U tripplanner -d tripplanner
-```
-
-Useful commands:
-
-```sql
-\dt
-```
-
-Lists the tables in the current database.
-
-```sql
-\d table_name
-```
-
-Displays the structure of a table.
-
-```sql
-\q
-```
-
-Exits the PostgreSQL console.
-
-## pgAdmin Connection
-
-pgAdmin runs in its own Docker container.
-
-To register the TripPlanner PostgreSQL server in pgAdmin, use:
-
-| Field | Value |
-|---|---|
-| Name | `TripPlanner Database` |
-| Host name/address | `database` |
-| Port | `5432` |
-| Maintenance database | `tripplanner` |
-| Username | value of `POSTGRES_USER` |
-| Password | value of `POSTGRES_PASSWORD` |
-
-The host must be:
-
-```text
-database
-```
-
-This is the Docker Compose service name used inside the internal Docker network.
-
-The default PostgreSQL databases `postgres`, `template0`, and `template1` are system databases and should not be deleted.
-
-## Development with Docker
-
-The backend runs entirely inside Docker. A Python virtual environment on the host system is therefore not required.
-
-The container isolates:
-
-```text
-backend container
-├── Python 3.12
-├── FastAPI
-├── SQLAlchemy
-├── Psycopg
-├── Pytest
-├── Ruff
-└── project dependencies
-```
-
-Open a Python shell inside the backend container:
-
-```bash
-docker compose exec backend python
-```
-
-Open a Bash shell inside the backend container:
-
-```bash
-docker compose exec backend bash
-```
-
-## Useful Docker Commands
-
-Check the service status:
-
-```bash
-docker compose ps
-```
-
-View all logs:
-
-```bash
-docker compose logs -f
-```
-
-View backend logs:
-
-```bash
-docker compose logs -f backend
-```
-
-Restart only the backend:
-
-```bash
-docker compose restart backend
-```
-
-Stop the complete environment:
-
-```bash
-docker compose down
-```
-
-Stop the environment and delete its volumes:
-
-```bash
-docker compose down -v
-```
-
-> Warning: `docker compose down -v` permanently deletes the local PostgreSQL data and the persistent pgAdmin configuration.
-
-## Recommended Development Workflow
-
-1. Start the environment:
-
-   ```bash
-   ./backend/start.sh
-   ```
-
-2. Implement the required functionality.
-
-3. Run the tests:
-
-   ```bash
-   docker compose exec backend pytest -v
-   ```
-
-4. Validate the code:
-
-   ```bash
-   docker compose exec backend ruff check .
-   docker compose exec backend ruff format --check .
-   ```
-
-5. Review the changes:
-
-   ```bash
-   git status
-   git diff
-   ```
-
-6. Create the corresponding Git commit.
-
-## Current Status
-
-The current backend infrastructure includes:
-
-- a working FastAPI application;
-- PostgreSQL connectivity;
-- a versioned API router;
-- a health endpoint;
-- automated tests;
-- static analysis and formatting with Ruff;
-- Docker-based execution;
-- pgAdmin integration;
-- a development startup script.
-
-The next development phases will add:
-
-- SQLAlchemy data models;
-- Alembic database migrations;
-- user registration;
-- authentication and JWT handling;
-- trip management;
-- the remaining TripPlanner functional modules.
+This project is distributed under the terms defined in the repository's `LICENSE` file.

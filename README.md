@@ -1,12 +1,24 @@
 # TripPlanner
 
-A full-stack web application for planning, organizing, tracking and documenting personal trips.
+Full-stack web application for planning, organizing and documenting personal trips.
 
-TripPlanner centralizes the main information involved in a trip, including destinations, dates, budgets, transport, accommodation, daily activities, expenses, participants, checklists, notes, files, maps and travel memories.
+TripPlanner centralizes destinations, dates, budgets, transport, accommodation, activities, expenses, participants, checklists, notes, files and trip memories in a single application.
 
-The project uses a decoupled client-server architecture with a **React and TypeScript** frontend, a **FastAPI** backend, a **PostgreSQL** database and a **Docker-based deployment environment**.
+This repository contains the **currently maintained cloud version** of TripPlanner.
 
-> TripPlanner is being developed as my Final Degree Project in Computer Engineering. The analysis and system design phases have been completed, and the project is currently entering the implementation phase.
+> The original version developed and submitted as my Final Degree Project is available in the academic repository:  
+> **https://github.com/Wanakox/trip-planner**
+
+---
+
+## Live Application
+
+- **Frontend:** https://trip-planner-frontend-vnir.onrender.com
+- **Backend API:** https://trip-planner-cloud.onrender.com
+- **API documentation:** https://trip-planner-cloud.onrender.com/docs
+- **Health check:** https://trip-planner-cloud.onrender.com/api/v1/health
+
+The cloud deployment uses **Render** for the application services and **Supabase** for PostgreSQL and file storage.
 
 ---
 
@@ -15,142 +27,122 @@ The project uses a decoupled client-server architecture with a **React and TypeS
 | Area | Technologies |
 |---|---|
 | Frontend | React, TypeScript, Material UI, Vite |
-| Backend | Python, FastAPI, SQLAlchemy |
+| Backend | Python, FastAPI, SQLAlchemy, Pydantic |
 | Database | PostgreSQL |
-| Authentication | JSON Web Tokens |
-| Maps | Leaflet, OpenStreetMap |
-| Background tasks | Redis, RQ |
-| PDF generation | WeasyPrint |
-| Deployment | Docker, Docker Compose, Raspberry Pi 5 |
-| Modeling and design | UML, Figma, AUP, Scrumban |
+| Database & Storage | Supabase |
+| Authentication | JWT |
+| Email verification | Brevo SMTP |
+| HTTP client | Axios |
+| Currency conversion | Frankfurter API |
+| PDF generation | ReportLab |
+| Testing | Pytest, Vitest, Testing Library |
+| Cloud deployment | Render, Supabase |
+| Version control | Git, GitHub |
 
 ---
 
 ## Main Features
 
-### User Management
-
-Users can register, log in, log out, view and edit their profile, select a default currency and permanently delete their account.
-
-Authentication and access control are managed using JSON Web Tokens.
-
-### Trip Management
-
-Users can create, view, edit, search and delete personal trips.
-
-Each trip can contain:
-
-- One or more destinations
-- Start and end dates
-- Description
-- Budget
-- Status
-- Rating
-- Transport information
-- Accommodation information
-- Participants
-- Expenses
-- Activities
-- Checklist
-- Notes and files
-
-The system also calculates the duration of the trip and the number of days remaining before it starts.
-
-### Daily Planning
-
-Trips are organized into daily itineraries.
+### User Accounts
 
 Users can:
 
-- Add activities to a specific day
-- Define their name, location and time
-- Edit or delete activities
+- Register an account
+- Verify their email address before signing in
+- Resend the verification email
+- Log in using JWT authentication
+- Refresh their session
+- View and edit their profile
+- Select a default currency
+- Upload a profile picture
+- Permanently delete their account
+
+Email verification links expire after a limited period, and unverified registrations can be automatically cleaned from the database.
+
+### Trip Management
+
+Users can:
+
+- Create, view, edit and delete trips
+- Search and filter trips
+- Define origin, dates, description and budget
+- Select the trip currency
+- Track trip status
+- Rate completed trips
+
+A trip can contain destinations, activities, accommodation, transport, expenses, participants, checklists, notes and uploaded documents.
+
+### Destinations and Daily Planning
+
+Users can:
+
+- Add multiple destinations to a trip
+- Reorder destinations
+- Organize activities by day
+- Reorder activities
 - Move activities between days
 - Mark activities as completed
 
 ### Transport and Accommodation
 
-Users can register and manage transport and accommodation associated with a trip.
-
-Transport information can include:
+Users can store and manage:
 
 - Transport type
-- Price
 - Origin and destination
-- Departure and arrival dates
-- Departure and arrival times
+- Departure and arrival information
+- Prices
 - Check-in information
-
-Accommodation information can include:
-
-- Name
-- Address
-- Price
-- Check-in date and time
-- Check-out date and time
+- Accommodation name and address
+- Check-in and check-out dates and times
 
 ### Expenses and Participants
 
-TripPlanner includes expense tracking for each trip.
+TripPlanner includes expense tracking per trip.
 
 Users can:
 
-- Add, edit and delete participants
-- Register expenses associated with a participant
+- Add participants
+- Associate expenses with participants
 - Categorize expenses
-- Calculate the total trip expenditure
-- Calculate expenditure by participant
-- Compare the real expenditure with the planned budget
-
-The application also includes an independent currency converter that does not store conversion operations.
+- Track total expenditure
+- Calculate expenditure per participant
+- Compare actual spending with the trip budget
+- Work with different currencies
 
 ### Checklists
 
-Each trip includes a checklist for managing preparation tasks.
-
-Users can:
+Each trip includes a checklist where users can:
 
 - Add, edit and delete tasks
 - Assign priorities
 - Reorder tasks
-- Mark or unmark tasks as completed
+- Mark tasks as completed
 
-### Completed Trips
-
-Completed trips can be documented with additional content.
+### Notes and Documents
 
 Users can:
 
-- Add notes associated with different days
+- Add notes associated with trip days
 - Edit and delete notes
-- Upload up to ten files
+- Upload trip documents
 - Delete uploaded files
-- Add a trip rating
-- Display activities and locations on a timeline
-- Display accommodation and activity locations on a map
-- Export the complete trip information to PDF
+- Store files using Supabase Storage
 
-### Search and Filtering
+Deleting a trip or account also removes the associated stored files.
 
-Trips can be searched by name and filtered using criteria such as:
+### Completed Trips
 
-- Country
-- Budget
-- Status
+Completed trips can include:
 
-### External Integrations
-
-TripPlanner includes planned integrations with external services:
-
-- **Google Calendar**, for creating events associated with flights and accommodation
-- **External flight search platforms**, such as Skyscanner or Kiwi
-- **Mapping services**, for geocoding locations and displaying routes
-
-The flight search functionality redirects the user to an external platform with the origin, destination and travel dates already provided.
+- A final rating
+- Notes and documents
+- Activity timelines
+- Map visualization
+- PDF export
 
 ---
 
-## Architecture Overview
+## Architecture
 
 TripPlanner follows a decoupled client-server architecture.
 
@@ -158,231 +150,364 @@ TripPlanner follows a decoupled client-server architecture.
 ┌──────────────────────────────┐
 │ React + TypeScript frontend  │
 │ Single Page Application      │
+│ Render Static Site           │
 └──────────────┬───────────────┘
                │
                │ HTTPS / REST API
                ▼
 ┌──────────────────────────────┐
 │ FastAPI backend              │
-│ Business logic and services  │
+│ Render Web Service           │
 └──────────────┬───────────────┘
                │
-               │ SQLAlchemy ORM
+               │ SQLAlchemy
                ▼
 ┌──────────────────────────────┐
-│ PostgreSQL database          │
+│ Supabase PostgreSQL          │
 └──────────────────────────────┘
+
+        ┌──────────────────────┐
+        │ Supabase Storage     │
+        │ User and trip files  │
+        └──────────────────────┘
 ```
 
-Redis and RQ are used for background tasks, including operations that should not block normal API requests.
+The backend is organized into separate layers:
 
-The system is designed to run through Docker Compose and to be deployed on a Raspberry Pi 5. This provides a portable and reproducible environment for development and production.
+- **Routers / Endpoints** — HTTP request handling
+- **Services** — application and business logic
+- **Repositories** — persistence and database queries
+- **Schemas** — validation and data transfer with Pydantic
+- **Models** — SQLAlchemy database models
+- **Core** — configuration, security and shared infrastructure
 
-More information is available in [`docs/architecture/architecture.md`](docs/architecture/architecture.md).
+This separation keeps the API layer independent from business logic and persistence concerns.
 
 ---
 
 ## Repository Structure
 
 ```text
-TripPlanner/
+trip-planner-cloud/
 ├── backend/
-├── frontend/
-├── docs/
-│   ├── analysis/
-│   ├── architecture/
-│   ├── design/
-│   ├── diagrams/
-│   ├── references/
-│   ├── requirements/
+│   ├── app/
+│   │   ├── api/
+│   │   ├── core/
+│   │   ├── integrations/
+│   │   ├── models/
+│   │   ├── repositories/
+│   │   ├── schemas/
+│   │   └── services/
+│   ├── database/
+│   ├── tests/
+│   ├── .env.example
+│   ├── pyproject.toml
 │   └── README.md
-├── docker-compose.yml
+│
+├── frontend/
+│   ├── src/
+│   │   ├── api/
+│   │   ├── components/
+│   │   ├── pages/
+│   │   ├── routes/
+│   │   ├── types/
+│   │   └── utils/
+│   ├── .env.example
+│   └── package.json
+│
+├── .gitignore
 ├── LICENSE
 └── README.md
 ```
 
-### Main Directories
+---
 
-| Directory | Description |
-|---|---|
-| `backend/` | FastAPI application, business logic, persistence and API endpoints |
-| `frontend/` | React and TypeScript Single Page Application |
-| `docs/analysis/` | Requirements analysis and traceability documentation |
-| `docs/architecture/` | Description of the system architecture |
-| `docs/design/` | Detailed system design documentation |
-| `docs/diagrams/` | UML, architecture, database and planning diagrams |
-| `docs/references/` | Academic and technical reference material |
-| `docs/requirements/` | Official project proposal and administrative documents |
+## Database
 
-The internal structures of `backend/` and `frontend/` will be documented in their respective README files as implementation progresses.
+The relational schema is available in:
+
+```text
+backend/database/schema.sql
+```
+
+The project uses PostgreSQL in Supabase.
+
+Provider-specific setup is stored separately in:
+
+```text
+backend/database/supabase_setup.sql
+```
+
+This keeps the relational schema independent from Supabase-specific features such as scheduled cleanup jobs.
 
 ---
 
-## Run with Docker Compose
+## Environment Variables
 
-Create the local environment file and replace the example secrets:
+The repository contains example environment files only.
+
+### Backend
+
+Copy:
 
 ```bash
+cp backend/.env.example backend/.env
+```
+
+The backend requires variables such as:
+
+```text
+DATABASE_URL
+JWT_SECRET_KEY
+
+SUPABASE_URL
+SUPABASE_SECRET_KEY
+
+SMTP_HOST
+SMTP_PORT
+SMTP_USERNAME
+SMTP_PASSWORD
+SMTP_FROM_EMAIL
+
+FRONTEND_URL
+```
+
+Never commit real credentials or production secrets.
+
+### Frontend
+
+Copy:
+
+```bash
+cp frontend/.env.example frontend/.env
+```
+
+Example:
+
+```text
+VITE_API_URL=/api/v1
+```
+
+For the cloud deployment, the frontend is configured to communicate with the deployed backend.
+
+---
+
+## Local Development
+
+The project can be run locally without Docker.
+
+### Backend
+
+Requirements:
+
+- Python 3.12+
+- PostgreSQL-compatible database
+- Python virtual environment recommended
+
+From the repository root:
+
+```bash
+cd backend
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev]"
 cp .env.example .env
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-Build and start the complete application:
+The backend will be available at:
+
+```text
+http://localhost:8000
+```
+
+Swagger documentation:
+
+```text
+http://localhost:8000/docs
+```
+
+### Frontend
+
+Requirements:
+
+- Node.js
+- npm
+
+From the repository root:
 
 ```bash
-docker compose up -d --build
+cd frontend
+npm install
+cp .env.example .env
+npm run dev
 ```
 
-The services are available at:
+The frontend will be available at:
 
-| Service | Default URL |
-|---|---|
-| Frontend | `http://localhost:5173` |
-| Backend API documentation | `http://localhost:8000/docs` |
-| pgAdmin | `http://localhost:5050` |
-
-Check container health and inspect logs:
-
-```bash
-docker compose ps
-docker compose logs -f frontend backend
+```text
+http://localhost:5173
 ```
-
-Stop the application without deleting database data:
-
-```bash
-docker compose down
-```
-
-The frontend is built as static assets and served by Nginx. Requests to `/api` are proxied through
-the internal Docker network to FastAPI, and unknown browser routes fall back to `index.html` so
-React Router works after a page refresh.
 
 ---
 
-## Documentation
+## Testing
 
-### Analysis
+### Backend
 
-- [System analysis](docs/analysis/TripPlanner%20-%20Analisis.pdf)
-- [Traceability matrix](docs/analysis/TripPlanner%20-%20Matriz%20de%20trazabilidad.pdf)
-- [Requirements extraction](docs/analysis/requirements-extraction.txt)
+Backend tests use **Pytest** and FastAPI's testing utilities.
 
-### Architecture and Design
+From the backend directory:
 
-- [Architecture description](docs/architecture/architecture.md)
-- [System design](docs/design/TripPlanner%20-%20Diseño.pdf)
+```bash
+pytest
+```
 
-### Project Documentation
+For verbose output:
 
-- [Topic proposal](docs/requirements/PeticionTemaJuanGarcia.pdf)
-- [Signed project document](docs/requirements/AnexoIII_JuanGarcia_signed.pdf)
+```bash
+pytest -v
+```
 
-### Diagrams
+Coverage is configured through `pyproject.toml`.
 
-The [`docs/diagrams/`](docs/diagrams/) directory contains:
+### Frontend
 
-- System architecture
-- Use-case diagram
-- Activity diagrams
-- Class diagrams
-- Entity-relationship diagram
-- Work Breakdown Structure
-- Traceability matrix
+Frontend tests use **Vitest**, **Testing Library** and **jsdom**.
 
----
+From the frontend directory:
 
-## Development Principles
+```bash
+npm test
+```
 
-The implementation is intended to follow established software engineering practices:
+Coverage can be executed with:
 
-- Layered architecture
-- Separation of responsibilities
-- SOLID principles
-- Clean Code practices
-- RESTful API design
-- Data validation
-- Secure password hashing
-- Token-based authentication
-- Automated testing
-- Containerized and reproducible environments
-- Version control with Git
+```bash
+npm run test:coverage
+```
 
-The project is developed incrementally, integrating the frontend, backend and persistence layers as each functional module is implemented.
+Linting:
+
+```bash
+npm run lint
+```
+
+Production build validation:
+
+```bash
+npm run build
+```
 
 ---
 
-## Why This Project?
+## Security
 
-The idea for TripPlanner comes from a real personal need identified during an Erasmus experience.
+The application includes:
 
-Planning several trips requires managing transport, accommodation, budgets, activities, documents and expenses. This information is often distributed across multiple applications, websites, notes and files, which makes the complete process difficult to manage.
+- Password hashing with Argon2
+- JWT access and refresh tokens
+- Protected API routes
+- Resource ownership checks
+- Email verification before login
+- Environment-based secrets
+- Server-side validation
+- File ownership checks
+- Database constraints and cascading deletion
 
-TripPlanner aims to provide a centralized platform covering the three main phases of a trip:
+Access tokens are short-lived and refresh tokens are used to renew authenticated sessions.
 
-1. Planning before departure
-2. Organization and expense tracking during the trip
-3. Documentation and preservation of the completed trip
+---
 
-The project also serves as a practical application of the knowledge acquired throughout the Computer Engineering degree.
+## Cloud Deployment
+
+The current public version is deployed using:
+
+### Frontend
+
+**Render Static Site**
+
+```text
+React + TypeScript + Vite
+```
+
+### Backend
+
+**Render Web Service**
+
+```text
+FastAPI + Uvicorn
+```
+
+Typical production start command:
+
+```bash
+uvicorn app.main:app --host 0.0.0.0 --port $PORT
+```
+
+### Database
+
+**Supabase PostgreSQL**
+
+SQLAlchemy communicates with PostgreSQL through the configured `DATABASE_URL`.
+
+### File Storage
+
+**Supabase Storage**
+
+Profile pictures and trip documents are stored outside the application service so they persist independently from Render deployments.
+
+### Email
+
+**Brevo SMTP**
+
+Used for account verification emails.
+
+---
+
+## Project Background
+
+TripPlanner originated as my Final Degree Project in Computer Engineering at the University of Córdoba.
+
+The original academic version focused on the complete engineering process: requirements, analysis, architecture, design, implementation, testing and deployment.
+
+After completing the degree project, development continued in this repository to move the application from the original self-hosted environment to a publicly accessible cloud deployment.
+
+The original academic repository is available here:
+
+**https://github.com/Wanakox/trip-planner**
 
 ---
 
 ## What This Project Demonstrates
 
-TripPlanner is intended to demonstrate practical skills in:
+TripPlanner demonstrates practical experience with:
 
-- Requirements engineering
-- Software analysis and design
-- UML modeling
-- Relational database design
-- Full-stack web development
-- REST API development
-- Authentication and authorization
-- Integration with external services
-- Background task processing
-- PDF generation
-- Containerized deployment
-- Technical documentation
-- Testing and system integration
-
----
-
-## Repository Description
-
-```text
-Full-stack web application for planning, organizing and documenting personal trips, built with React, FastAPI, PostgreSQL and Docker.
-```
-
-Suggested GitHub topics:
-
-```text
-react
-typescript
-fastapi
-python
-postgresql
-docker
-docker-compose
-sqlalchemy
-jwt-authentication
-material-ui
-leaflet
-openstreetmap
-redis
-rq
-full-stack
-rest-api
-travel-planner
-final-degree-project
-```
+- Backend development with FastAPI
+- REST API design
+- Layered software architecture
+- React and TypeScript frontend development
+- PostgreSQL and relational database design
+- SQLAlchemy ORM
+- JWT authentication
+- Email verification flows
+- External service integration
+- File storage
+- Cloud deployment
+- Automated testing
+- Linux-based development
+- Git and GitHub
 
 ---
 
 ## Author
 
 **Juan García Moreno**  
-Computer Engineering student  
-GitHub: [@Wanakox](https://github.com/Wanakox)
+Computer Engineering Graduate
+
+- GitHub: https://github.com/Wanakox
+- Portfolio: https://wanakox.github.io
+- LinkedIn: https://www.linkedin.com/in/juan-garcía-moreno
 
 ---
 
